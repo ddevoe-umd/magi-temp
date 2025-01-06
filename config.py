@@ -8,7 +8,7 @@ card_data = {
     "roi_height": 0,
     "roi_spacing_x": 0,
     "roi_spacing_y": 0,
-	"positives": {[]}
+	"positives": {}
 }    
 
 well_cols = 0            # number of well columns
