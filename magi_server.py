@@ -176,9 +176,9 @@ def clear_globals():
     roi_spacing_x = 0        # spacing between ROI centers
     roi_spacing_y = 0        
     ROIs = []                # list of upper left corners for all ROIs
+    card_filename = ''
     return('globals cleared')
 
-card_filename
 
 # Calibration function for PWM (temperature control):
 def cali_fun(y_data):
