@@ -169,14 +169,14 @@ class S(BaseHTTPRequestHandler):
 
 # Clear globals in config.py:
 def clear_globals():
-    well_config = []
-    roi_upper_left = (0,0)   # cordinates for upper left corner of upper left ROI
-    roi_width = 0            # box size
-    roi_height = 0 
-    roi_spacing_x = 0        # spacing between ROI centers
-    roi_spacing_y = 0        
-    ROIs = []                # list of upper left corners for all ROIs
-    card_filename = ''
+    config.well_config = []
+    config.roi_upper_left = (0,0)   # cordinates for upper left corner of upper left ROI
+    config.roi_width = 0            # box size
+    config.roi_height = 0 
+    config.roi_spacing_x = 0        # spacing between ROI centers
+    config.roi_spacing_y = 0        
+    config.ROIs = []                # list of upper left corners for all ROIs
+    config.card_filename = ''
     return('globals cleared')
 
 
