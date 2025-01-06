@@ -51,6 +51,7 @@ def add_ROIs(img):      # Add ROIs to a captured image
         img_roi = Image.new('RGBA', img.size, (255, 255, 255, 0))  # create new image with ROIs only
         draw = ImageDraw.Draw(img_roi)
         for idx,roi in enumerate(config.ROIs):
+            print(idx, flush=True)
             roi_lower_right = (roi[0] + config.roi_width, roi[1] + config.roi_height)
             fill_color = hex_to_rgb(colors[idx])  # convert "#rrggbb" to [R,G,B]
             fill_color.append(64)  # Add alpha channel for transparency
