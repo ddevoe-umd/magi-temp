@@ -137,7 +137,7 @@ def get_image():       # Return a PIL image with colored ROI boxes for display
         cam.stop()
         GPIO.output(IMAGER_LED_PIN, GPIO.HIGH)
         # Add ROIs to image only if an assay card has been loaded:
-        if len(config.card_data)>0:
+        if len(config.well_config)>0:
             image = add_ROIs(image) 
         buffer = BytesIO()                   # create a buffer to hold the image
         image.save(buffer, format="PNG") # Convert image to PNG
