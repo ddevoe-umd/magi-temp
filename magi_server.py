@@ -99,7 +99,6 @@ class S(BaseHTTPRequestHandler):
         
         if action == 'setupAssay':       # Update global variables from the assay card data
             config.card_data = data
-            results = imager.setup()
             self.wfile.write(results.encode('utf-8'))
         if action == 'start':            # Start the PID loop for temp control
             imager.clear_temp_file()     # Clear temp data file (if "end assay" not hit last run)
