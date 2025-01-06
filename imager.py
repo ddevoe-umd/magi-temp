@@ -32,12 +32,11 @@ def setup_ROIs():
     print('setup_ROIs() called', flush=True)
     config.ROIs = []
     rows = len(config.well_config)
-    for i in range(rows):
-        config.ROIs.append([])
+    for r in range(rows):
         cols = config.well_cols = len(config.well_config[0])
-        for j in range(cols):
+        for c in range(cols):
             config.ROIs[i].append( {
-                "target": config.well_config[i][j],
+                "target": config.well_config[r][c],
                 "x": config.roi_upper_left[0] + config.roi_spacing_x*j,
                 "y": config.roi_upper_left[1] + config.roi_spacing_y*i
                 } )
