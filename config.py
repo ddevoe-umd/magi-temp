@@ -1,6 +1,8 @@
 
-# Cross-module global variables:
+# Cross-module Python global variables:
 
+card_data = {}           # all card data...not really needed since each individual 
+                         # element (below) is pulled out immediately in magi_server.py
 well_config = []
 well_cols = 4            # number of well columns
 well_rows = 3            # number of well rows
@@ -11,9 +13,9 @@ roi_spacing_x = 0        # spacing between ROI centers
 roi_spacing_y = 0        
 ROIs = []                # list of upper left corners for all ROIs
 
-
 card_filename = ""
 
+# target_dict is currently copied from magi.js...need to make this come from file...
 target_dict = {          
   "MecA": ["#4C4CEB", "solid"],   
   "FemB": ["#5ED649", "solid"],

@@ -98,13 +98,15 @@ class S(BaseHTTPRequestHandler):
         print(f'{action}: {data}', flush=True)
         
         if action == 'setupAssay':       # Update global variables from the assay card data
-            config.well_config = data["well_config"]
-            config.roi_upper_left = tuple(int(val) for val in data["roi_upper_left"])
-            config.roi_width = int(data["roi_width"])
-            config.roi_height = int(data["roi_height"])
-            config.roi_spacing_x = int(data["roi_spacing_x"])
-            config.roi_spacing_y = int(data["roi_spacing_y"])
-            config.positives = data["positives"]
+            config.card_filename = data[0]
+            config.card_data = data[1]
+            config.well_config = card_data["well_config"]
+            config.roi_upper_left = tuple(int(val) for val in card_data["roi_upper_left"])
+            config.roi_width = int(card_data["roi_width"])
+            config.roi_height = int(card_data["roi_height"])
+            config.roi_spacing_x = int(card_data["roi_spacing_x"])
+            config.roi_spacing_y = int(card_data["roi_spacing_y"])
+            config.positives = card_data["positives"]
             imager.setup_ROIs()
             results = "config.py globals updated from card data"
             display_config_vals()
