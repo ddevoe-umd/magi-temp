@@ -98,7 +98,16 @@ class S(BaseHTTPRequestHandler):
         print(f'{action}: {data}', flush=True)
         
         if action == 'setupAssay':       # Update global variables from the assay card data
-            config.card_data = data
+            for val in data:
+                print(val, flush=True)
+            config.well_config = data["well_config"]
+            config.roi_upper_left = data["roi_upper_left"]
+            config.roi_width = data["roi_width"]
+            config.roi_height = data["roi_height"]
+            config.roi_spacing_x = data["roi_spacing_x"]
+            config.roi_spacing_y = data["roi_spacing_y"]
+            config.positives = data["positives"]
+            results = "config.py globals updated from card data"
             self.wfile.write(results.encode('utf-8'))
         if action == 'start':            # Start the PID loop for temp control
             imager.clear_temp_file()     # Clear temp data file (if "end assay" not hit last run)
