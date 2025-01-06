@@ -110,7 +110,10 @@ class S(BaseHTTPRequestHandler):
             imager.setup_ROIs()  # set up the ROIs from assay card data
             imager.get_image()   # capture a new image showing ROIs
             results = "config.py globals updated from card data"
-            display_config_vals()
+            self.wfile.write(results.encode('utf-8'))
+
+        if action == 'onLoad':           # Housekeeping on starting application
+            results = clear_globals()              # clear all global variables
             self.wfile.write(results.encode('utf-8'))
         if action == 'start':            # Start the PID loop for temp control
             imager.clear_temp_file()     # Clear temp data file (if "end assay" not hit last run)
@@ -164,16 +167,18 @@ class S(BaseHTTPRequestHandler):
     def log_message(self, format, *args):  # Suppress server output
         return
 
-def display_config_vals():
-    print(config.well_config)
-    print(config.roi_upper_left)
-    print(config.roi_width)
-    print(config.roi_height)
-    print(config.roi_spacing_x)
-    print(config.roi_spacing_y)
-    print(config.positives, flush=True)
-    sys.stdout.flush()
+# Clear globals in config.py:
+def clear_globals()
+    well_config = []
+    roi_upper_left = (0,0)   # cordinates for upper left corner of upper left ROI
+    roi_width = 0            # box size
+    roi_height = 0 
+    roi_spacing_x = 0        # spacing between ROI centers
+    roi_spacing_y = 0        
+    ROIs = []                # list of upper left corners for all ROIs
+    return('globals cleared')
 
+card_filename
 
 # Calibration function for PWM (temperature control):
 def cali_fun(y_data):
