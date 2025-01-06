@@ -108,6 +108,7 @@ class S(BaseHTTPRequestHandler):
             config.roi_spacing_y = int(data["roi_spacing_y"])
             config.positives = data["positives"]
             results = "config.py globals updated from card data"
+            display_config_vals()
             self.wfile.write(results.encode('utf-8'))
         if action == 'start':            # Start the PID loop for temp control
             imager.clear_temp_file()     # Clear temp data file (if "end assay" not hit last run)
@@ -160,6 +161,16 @@ class S(BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):  # Suppress server output
         return
+
+def display_config_vals():
+    print(config.well_config)
+    print(config.roi_upper_left)
+    print(config.roi_width)
+    print(config.roi_height)
+    print(config.roi_spacing_x)
+    print(config.roi_spacing_y)
+    print(config.positives, flush=True)
+
 
 # Calibration function for PWM (temperature control):
 def cali_fun(y_data):
