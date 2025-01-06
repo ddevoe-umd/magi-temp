@@ -50,14 +50,16 @@ def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
 
 def add_ROIs(img):      # Add ROIs to a captured image
     try:
-        colors = [config.target_dict[t][0] for row in config.well_config for t in row]
-        print(colors, flush=True)
-        sys.stdout.flush()
+        #colors = [config.target_dict[t][0] for row in config.well_config for t in row]
+        #print(colors, flush=True)
+        #sys.stdout.flush()
 
         img = img.convert('RGBA')   # convert captured image to support an alpha channel
         img_roi = Image.new('RGBA', img.size, (255, 255, 255, 0))  # create new image with ROIs only
         draw = ImageDraw.Draw(img_roi)
         for roi in config.ROIs:
+            print(roi, flush=True)
+            sys.stdout.flush()
             roi_lower_right = (roi['x'] + config.roi_width, roi['y'] + config.roi_height)
             fill_color = hex_to_rgb(config.target_dict[roi['target']][0])  # convert "#rrggbb" to [R,G,B]
             fill_color.append(64)  # Add alpha channel for transparency
