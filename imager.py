@@ -40,8 +40,10 @@ for i in range(config.well_rows):
     for j in range(config.well_cols):
         x = config.roi_upper_left[0] + config.roi_spacing_x*j
         y = config.roi_upper_left[1] + config.roi_spacing_y*i
+
         print(x,y, flush=True)
         sys.stdout.flush()
+        
         config.ROIs.append((x,y))
 
 def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
