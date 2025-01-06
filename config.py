@@ -11,6 +11,7 @@ card_data = {
 	"positives": {}
 }    
 
+well_config = []
 well_cols = 0            # number of well columns
 well_rows = 0            # number of well rows
 roi_upper_left = (0,0)   # cordinates for upper left corner of upper left ROI

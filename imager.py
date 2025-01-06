@@ -127,6 +127,7 @@ def get_image_data():    # Extract fluorescence measurements from ROIs in image
         return(roi_avgs)
     except Exception as e:
         print(f'Exception in get_image_data(): {e}', flush=True)
+        return(f'Exception in get_image_data(): {e}')
 
 def get_image():       # Return a PIL image with colored ROI boxes for display
     try:
