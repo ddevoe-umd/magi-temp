@@ -31,15 +31,18 @@ data_directory = '/path/to/ramdisk'
 def setup_ROIs():
     config.ROIs = []
     rows = len(config.well_config)
-    for i in range(config.rows):
+    for i in range(rows):
+        config.ROIs.append([])
         cols = config.well_cols = len(config.well_config[0])
         for j in range(cols):
-            x = config.roi_upper_left[0] + config.roi_spacing_x*j
-            y = config.roi_upper_left[1] + config.roi_spacing_y*i
-            config.ROIs.append((x,y))
+            config.ROIs[i].append( {
+                "target": config.well_config[i][j],
+                "x": config.roi_upper_left[0] + config.roi_spacing_x*j,
+                "y": config.roi_upper_left[1] + config.roi_spacing_y*i
+                } )
+    print(config.ROIs, flush=True)
+    sys.stdout.flush()
 
-            print(x,y, flush=True)
-            sys.stdout.flush()
 
 def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
     return [int(h[i:i+2], 16) for i in (1, 3, 5)]
@@ -54,14 +57,14 @@ def add_ROIs(img):      # Add ROIs to a captured image
         img = img.convert('RGBA')   # convert captured image to support an alpha channel
         img_roi = Image.new('RGBA', img.size, (255, 255, 255, 0))  # create new image with ROIs only
         draw = ImageDraw.Draw(img_roi)
-        for idx,roi in enumerate(config.ROIs):
-            roi_lower_right = (roi[0] + config.roi_width, roi[1] + config.roi_height)
-            fill_color = hex_to_rgb(colors[idx])  # convert "#rrggbb" to [R,G,B]
+        for roi in config.ROIs:
+            roi_lower_right = (roi['x'] + config.roi_width, roi['y'] + config.roi_height)
+            fill_color = hex_to_rgb(config.target_dict[roi['target']][0])  # convert "#rrggbb" to [R,G,B]
             fill_color.append(64)  # Add alpha channel for transparency
-            draw.rectangle([roi, roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
+            draw.rectangle([(roi['x'],roi['y']), roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
             font = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 9)         # Add well target text
-            text_position = (roi[0] + config.roi_width + 1, roi[1])
-            draw.text(text_position, config.well_config[idx],'#ffffff',font=font)
+            text_position = (roi['x'] + config.roi_width + 1, roi['y'])
+            draw.text(text_position, roi['target'],'#ffffff',font=font)
         font_timestamp = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 12) 
         draw.text((10,10), config.card_filename, font=font_timestamp)  
         draw.text((10,20), time.strftime("%Y%m%d_%Hh%Mm%Ss"), font=font_timestamp)
@@ -71,32 +74,6 @@ def add_ROIs(img):      # Add ROIs to a captured image
         print('Exception in get_image():', flush=True)
         print(f'{type(e)}: {e}', flush=True)
 
-
-def add_ROIs____(img):      # Add ROIs to a captured image
-    try:
-        colors = [config.target_dict[t][0] for t in config.well_config]
-        print(colors, flush=True)
-        sys.stdout.flush()
-
-        img = img.convert('RGBA')   # convert captured image to support an alpha channel
-        img_roi = Image.new('RGBA', img.size, (255, 255, 255, 0))  # create new image with ROIs only
-        draw = ImageDraw.Draw(img_roi)
-        for idx,roi in enumerate(config.ROIs):
-            roi_lower_right = (roi[0] + config.roi_width, roi[1] + config.roi_height)
-            fill_color = hex_to_rgb(colors[idx])  # convert "#rrggbb" to [R,G,B]
-            fill_color.append(64)  # Add alpha channel for transparency
-            draw.rectangle([roi, roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
-            font = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 9)         # Add well target text
-            text_position = (roi[0] + config.roi_width + 1, roi[1])
-            draw.text(text_position, config.well_config[idx],'#ffffff',font=font)
-        font_timestamp = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 12) 
-        draw.text((10,10), config.card_filename, font=font_timestamp)  
-        draw.text((10,20), time.strftime("%Y%m%d_%Hh%Mm%Ss"), font=font_timestamp)
-        img_new = Image.alpha_composite(img, img_roi)  # composite captured & ROI images
-        return(img_new)
-    except Exception as e:
-        print('Exception in get_image():', flush=True)
-        print(f'{type(e)}: {e}', flush=True)
 
 def adjust_settings(exposure_time_ms, analogue_gain, color_gains):
     try:
@@ -126,7 +103,8 @@ def setup_camera(exposure_time_ms=50, analogue_gain=0.5, color_gains=(1.2,1.0)):
 
 def roi_avg(image, roi):   # Return average pixel values in ROI
     r,b,g = 0,0,0
-    px,py = roi
+    px = roi['x']
+    py = roi['y']
     for x in range(int(px),int(px+config.roi_width)):
         for y in range(int(py),int(py+config.roi_height)):
             xy = (x,y)
