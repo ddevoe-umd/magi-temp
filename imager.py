@@ -4,6 +4,7 @@ import numpy as np
 import csv
 import json
 import os
+import sys
 from filter_curves import filter
 import RPi.GPIO as GPIO
 from PIL import Image, ImageDraw, ImageFont
