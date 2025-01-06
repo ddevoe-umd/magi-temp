@@ -169,7 +169,7 @@ def display_config_vals():
     print(config.roi_height)
     print(config.roi_spacing_x)
     print(config.roi_spacing_y)
-    print(config.positives)
+    print(config.positives, flush=True)
     sys.stdout.flush()
 
 
