@@ -1,8 +1,6 @@
 
 # Cross-module Python global variables:
 
-card_data = {}           # all card data...not really needed since each individual 
-                         # element (below) is pulled out immediately in magi_server.py
 well_config = []
 well_cols = 4            # number of well columns
 well_rows = 3            # number of well rows

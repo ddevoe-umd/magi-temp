@@ -99,7 +99,7 @@ class S(BaseHTTPRequestHandler):
         
         if action == 'setupAssay':       # Update global variables from the assay card data
             config.card_filename = data[0]
-            config.card_data = data[1]
+            card_data = data[1]
             config.well_config = card_data["well_config"]
             config.roi_upper_left = tuple(int(val) for val in card_data["roi_upper_left"])
             config.roi_width = int(card_data["roi_width"])
