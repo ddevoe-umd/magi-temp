@@ -123,6 +123,8 @@ def roi_avg(image, roi):   # Return average pixel values in ROI
     return((r,g,b))
 
 def get_image_data():    # Extract fluorescence measurements from ROIs in image
+    print('get_image_data() called', flush=True)
+    sys.stdout.flush()
     try:
         cam.start()
         GPIO.output(IMAGER_LED_PIN, GPIO.LOW)     # Turn on LED
@@ -152,6 +154,8 @@ def get_image():       # Return a PIL image with colored ROI boxes for display
         GPIO.output(IMAGER_LED_PIN, GPIO.HIGH)
         # Add ROIs to image only if an assay card has been loaded:
         if len(config.well_config)>0:
+            print(f'calling add_ROIs() for {config.well_config}', flush=True)
+            sys.stdout.flush()
             image = add_ROIs(image) 
         buffer = BytesIO()                   # create a buffer to hold the image
         image.save(buffer, format="PNG") # Convert image to PNG
