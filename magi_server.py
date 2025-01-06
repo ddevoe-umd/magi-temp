@@ -101,15 +101,14 @@ class S(BaseHTTPRequestHandler):
             config.card_filename = data[0]
             card_data = data[1]
             config.well_config = card_data["well_config"]
-            config.well_rows = len(config.well_config)
-            config.well_cols = len(config.well_config[0])
             config.roi_upper_left = tuple(int(val) for val in card_data["roi_upper_left"])
             config.roi_width = int(card_data["roi_width"])
             config.roi_height = int(card_data["roi_height"])
             config.roi_spacing_x = int(card_data["roi_spacing_x"])
             config.roi_spacing_y = int(card_data["roi_spacing_y"])
             config.positives = card_data["positives"]
-            imager.setup_ROIs()
+            imager.setup_ROIs()  # set up the ROIs from assay card data
+            imager.get_image()   # capture a new image showing ROIs
             results = "config.py globals updated from card data"
             display_config_vals()
             self.wfile.write(results.encode('utf-8'))
