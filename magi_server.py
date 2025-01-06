@@ -170,6 +170,7 @@ def display_config_vals():
     print(config.roi_spacing_x)
     print(config.roi_spacing_y)
     print(config.positives, flush=True)
+    sys.stdout.flush()
 
 
 # Calibration function for PWM (temperature control):
