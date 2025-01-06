@@ -101,11 +101,11 @@ class S(BaseHTTPRequestHandler):
             for val in data:
                 print(val, flush=True)
             config.well_config = data["well_config"]
-            config.roi_upper_left = data["roi_upper_left"]
-            config.roi_width = data["roi_width"]
-            config.roi_height = data["roi_height"]
-            config.roi_spacing_x = data["roi_spacing_x"]
-            config.roi_spacing_y = data["roi_spacing_y"]
+            config.roi_upper_left = (int(val) for val in data["roi_upper_left"])
+            config.roi_width = int(data["roi_width"])
+            config.roi_height = int(data["roi_height"])
+            config.roi_spacing_x = int(data["roi_spacing_x"])
+            config.roi_spacing_y = int(data["roi_spacing_y"])
             config.positives = data["positives"]
             results = "config.py globals updated from card data"
             self.wfile.write(results.encode('utf-8'))
