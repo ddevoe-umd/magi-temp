@@ -2,7 +2,7 @@
 
 
 card_data = {
-    "well_config": [[]]
+    "well_config": [],
     "roi_upper_left": [0,0],
     "roi_width": 0,
     "roi_height": 0,
