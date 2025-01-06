@@ -98,7 +98,7 @@ class S(BaseHTTPRequestHandler):
         print(f'{action}: {data}', flush=True)
         
         if action == 'setupAssay':         # Update assay information from the assay card data
-            print(f'card data received: {card_data}', flush=True)
+            print(f'card data received: {data}', flush=True)
             card_data = data
             results = "Card data accepted"
             self.wfile.write(results.encode('utf-8'))
