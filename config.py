@@ -14,5 +14,10 @@ ROIs = []                # list of upper left corners for all ROIs
 
 card_filename = ""
 
-target_dict = {}
-
+target_dict = {          
+  "MecA": ["#4C4CEB", "solid"],   
+  "FemB": ["#5ED649", "solid"],
+  "Nuc": ["#DD4444", "solid"],
+  "POS": ["#222222", "dash"],
+  "NEG": ["#555555", "dot"]
+};
