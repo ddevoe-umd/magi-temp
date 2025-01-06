@@ -105,7 +105,7 @@ class S(BaseHTTPRequestHandler):
             config.roi_spacing_x = int(data["roi_spacing_x"])
             config.roi_spacing_y = int(data["roi_spacing_y"])
             config.positives = data["positives"]
-            imager.setupROIs()
+            imager.setup_ROIs()
             results = "config.py globals updated from card data"
             display_config_vals()
             self.wfile.write(results.encode('utf-8'))
