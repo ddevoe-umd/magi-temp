@@ -40,6 +40,8 @@ for i in range(config.well_rows):
     for j in range(config.well_cols):
         x = config.roi_upper_left[0] + config.roi_spacing_x*j
         y = config.roi_upper_left[1] + config.roi_spacing_y*i
+        print(x,y, flush=True)
+        sys.stdout.flush()
         config.ROIs.append((x,y))
 
 def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
@@ -55,8 +57,6 @@ def add_ROIs(img):      # Add ROIs to a captured image
         img_roi = Image.new('RGBA', img.size, (255, 255, 255, 0))  # create new image with ROIs only
         draw = ImageDraw.Draw(img_roi)
         for idx,roi in enumerate(config.ROIs):
-            print(idx, flush=True)
-
             roi_lower_right = (roi[0] + config.roi_width, roi[1] + config.roi_height)
             fill_color = hex_to_rgb(colors[idx])  # convert "#rrggbb" to [R,G,B]
             fill_color.append(64)  # Add alpha channel for transparency
