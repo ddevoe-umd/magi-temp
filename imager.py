@@ -44,25 +44,9 @@ for i in range(well_rows):
 def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
     return [int(h[i:i+2], 16) for i in (1, 3, 5)]
 
-def add_ROIs(img, data):      # Add ROIs to a captured image
-    # data format (if not empty): 
-    #   [card_filename, card_data_dict]
-    # where card_data_dict has the following format:
-    #   {
-    #       "well_config": [[],[],[]]
-    #       "roi_upper_left": [(),()],
-    #       "roi_width": (),
-    #       "roi_height": (),
-    #       "roi_spacing_x": (),
-    #       "roi_spacing_y": (),
-    #       "positives": {[]}
-    #   }    
+def add_ROIs(img):      # Add ROIs to a captured image
     try:
-        # Extract well names & colors:
-        card_filename = data[0]       # user-selected card file name
-        well_config = data[1]["well_config"]
-        target_dict = data[2]        # target colors
-        colors = [target_dict[t][0] for t in well_config]
+        colors = [config.target_dict[t][0] for t in config.well_config]
         img = img.convert('RGBA')   # convert captured image to support an alpha channel
         img_roi = Image.new('RGBA', img.size, (255, 255, 255, 0))  # create new image with ROIs only
         draw = ImageDraw.Draw(img_roi)
@@ -73,9 +57,9 @@ def add_ROIs(img, data):      # Add ROIs to a captured image
             draw.rectangle([roi, roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
             font = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 9)         # Add well target text
             text_position = (roi[0] + roi_width + 1, roi[1])
-            draw.text(text_position, well_config[idx],'#ffffff',font=font)
+            draw.text(text_position, config.well_config[idx],'#ffffff',font=font)
         font_timestamp = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 12) 
-        draw.text((10,10), card_filename, font=font_timestamp)  
+        draw.text((10,10), config.card_filename, font=font_timestamp)  
         draw.text((10,20), time.strftime("%Y%m%d_%Hh%Mm%Ss"), font=font_timestamp)
         img_new = Image.alpha_composite(img, img_roi)  # composite captured & ROI images
         return(img_new)
@@ -161,6 +145,7 @@ def get_image():       # Return a PIL image with colored ROI boxes for display
         return(f"data:image/png;base64,{png_base64}")
     except Exception as e:
         print(f'Exception in get_image(): {e}', flush=True)
+        return(f'Exception in get_image(): {e}')
 
 # Delete contents of the temp data file:
 def clear_temp_file():
