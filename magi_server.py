@@ -17,7 +17,7 @@ import RPi.GPIO as GPIO
 import multiprocessing
 from gpiozero import MCP3008
 
-import config   # Cross-module global variables
+import config   # Cross-module global variables for all Python codes
 
 sys.path.append('/home/pi/magi')  # Add application path to the Python search path
 logfile = "magi_server.log"       # Log file for stdio + stderr (see setup.sh)
@@ -101,6 +101,8 @@ class S(BaseHTTPRequestHandler):
             config.card_filename = data[0]
             card_data = data[1]
             config.well_config = card_data["well_config"]
+            config.well_rows = len(config.well_config)
+            config.well_cols = len(config.well_config[0])
             config.roi_upper_left = tuple(int(val) for val in card_data["roi_upper_left"])
             config.roi_width = int(card_data["roi_width"])
             config.roi_height = int(card_data["roi_height"])

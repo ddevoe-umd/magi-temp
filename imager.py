@@ -28,20 +28,12 @@ cam = Picamera2()
 
 data_directory = '/path/to/ramdisk'
 
-# Set up list containing upper left corner of all ROIs:
-#well_cols = 4   # number of well columns
-#well_rows = 3   # number of well rows
-#roi_upper_left = (200,185)   # cordinates for upper left corner of upper left ROI
-#roi_spacing = 62     # spacing (x & y) between ROI centers
-#roi_width = 12
-#roi_height = 28 
-#ROIs = []            # list of upper left corners for all ROIs
-
-
 def setup_ROIs():
     config.ROIs = []
-    for i in range(config.well_rows):
-        for j in range(config.well_cols):
+    rows = len(config.well_config)
+    for i in range(config.rows):
+        cols = config.well_cols = len(config.well_config[0])
+        for j in range(cols):
             x = config.roi_upper_left[0] + config.roi_spacing_x*j
             y = config.roi_upper_left[1] + config.roi_spacing_y*i
             config.ROIs.append((x,y))
@@ -52,7 +44,35 @@ def setup_ROIs():
 def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
     return [int(h[i:i+2], 16) for i in (1, 3, 5)]
 
+
 def add_ROIs(img):      # Add ROIs to a captured image
+    try:
+        colors = [config.target_dict[t][0] for row in config.well_config for t in row]
+        print(colors, flush=True)
+        sys.stdout.flush()
+
+        img = img.convert('RGBA')   # convert captured image to support an alpha channel
+        img_roi = Image.new('RGBA', img.size, (255, 255, 255, 0))  # create new image with ROIs only
+        draw = ImageDraw.Draw(img_roi)
+        for idx,roi in enumerate(config.ROIs):
+            roi_lower_right = (roi[0] + config.roi_width, roi[1] + config.roi_height)
+            fill_color = hex_to_rgb(colors[idx])  # convert "#rrggbb" to [R,G,B]
+            fill_color.append(64)  # Add alpha channel for transparency
+            draw.rectangle([roi, roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
+            font = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 9)         # Add well target text
+            text_position = (roi[0] + config.roi_width + 1, roi[1])
+            draw.text(text_position, config.well_config[idx],'#ffffff',font=font)
+        font_timestamp = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 12) 
+        draw.text((10,10), config.card_filename, font=font_timestamp)  
+        draw.text((10,20), time.strftime("%Y%m%d_%Hh%Mm%Ss"), font=font_timestamp)
+        img_new = Image.alpha_composite(img, img_roi)  # composite captured & ROI images
+        return(img_new)
+    except Exception as e:
+        print('Exception in get_image():', flush=True)
+        print(f'{type(e)}: {e}', flush=True)
+
+
+def add_ROIs____(img):      # Add ROIs to a captured image
     try:
         colors = [config.target_dict[t][0] for t in config.well_config]
         print(colors, flush=True)
