@@ -7,6 +7,8 @@ from scipy.signal import butter, filtfilt, sosfiltfilt
 import matplotlib.pyplot as plt
 import pandas as pd
 
+import config   # Cross-module global variables for all Python codes
+
 def get_ttp(t,y):
     # Calculate slope at midpoint and project back to baseline to find TTP
     npoints = 2    # number of points before and after midpoint for linear fit
