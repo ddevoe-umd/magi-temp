@@ -28,6 +28,7 @@ cam = Picamera2()
 
 data_directory = '/path/to/ramdisk'
 
+# Create a flat list of ROI dicts from 2D well_config array:
 def setup_ROIs():
     print('setup_ROIs() called', flush=True)
     config.ROIs = []
@@ -35,7 +36,7 @@ def setup_ROIs():
     for r in range(rows):
         cols = config.well_cols = len(config.well_config[0])
         for c in range(cols):
-            config.ROIs[i].append( {
+            config.ROIs.append( {
                 "target": config.well_config[r][c],
                 "x": config.roi_upper_left[0] + config.roi_spacing_x*j,
                 "y": config.roi_upper_left[1] + config.roi_spacing_y*i
