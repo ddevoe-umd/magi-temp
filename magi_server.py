@@ -95,9 +95,9 @@ class S(BaseHTTPRequestHandler):
         info = json.loads(post_dict['todo'])
         action = info[0]
         data = info[1]
-        #print(f'{action}: {data}', flush=True)
-                
-        if action == 'loadCard':         # Update assay information from the assay card data
+        print(f'{action}: {data}', flush=True)
+        
+        if action == 'setupAssay':         # Update assay information from the assay card data
             card_data = data
             print(card_data, flush=True)
             results = "Card data accepted";
