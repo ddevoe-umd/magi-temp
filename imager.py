@@ -10,11 +10,13 @@ from PIL import Image, ImageDraw, ImageFont
 import base64
 from io import BytesIO
 
+import config   # Cross-module global variables
+
 font_path = "/home/pi/magi/fonts"
 
-LED_PIN = 13    # status LED - value must be the same as in magi_server.py
+IMAGER_LED_PIN = 13    # status LED - value must be the same as in magi_server.py
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(LED_PIN, GPIO.OUT) 
+GPIO.setup(IMAGER_LED_PIN, GPIO.OUT) 
 
 # Image size:
 w = 640         # min of 64, max of 2592 for 5MP camera
@@ -23,7 +25,6 @@ res = (w,h)
 
 cam = Picamera2() 
 
-#data_directory = 'data'
 data_directory = '/path/to/ramdisk'
 
 # Set up list containing upper left corner of all ROIs:
@@ -44,10 +45,22 @@ def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
     return [int(h[i:i+2], 16) for i in (1, 3, 5)]
 
 def add_ROIs(img, data):      # Add ROIs to a captured image
+    # data format (if not empty): 
+    #   [card_filename, card_data_dict]
+    # where card_data_dict has the following format:
+    #   {
+    #       "well_config": [[],[],[]]
+    #       "roi_upper_left": [(),()],
+    #       "roi_width": (),
+    #       "roi_height": (),
+    #       "roi_spacing_x": (),
+    #       "roi_spacing_y": (),
+    #       "positives": {[]}
+    #   }    
     try:
         # Extract well names & colors:
         card_filename = data[0]       # user-selected card file name
-        well_config = data[1]        # well configuration
+        well_config = data[1]["well_config"]
         target_dict = data[2]        # target colors
         colors = [target_dict[t][0] for t in well_config]
         img = img.convert('RGBA')   # convert captured image to support an alpha channel
@@ -114,10 +127,10 @@ def roi_avg(image, roi):   # Return average pixel values in ROI
 def get_image_data():    # Extract fluorescence measurements from ROIs in image
     try:
         cam.start()
-        GPIO.output(LED_PIN, GPIO.LOW)     # Turn off LED
+        GPIO.output(IMAGER_LED_PIN, GPIO.LOW)     # Turn on LED
         image = cam.capture_image("main")   # capture as PIL image
         cam.stop()
-        GPIO.output(LED_PIN, GPIO.HIGH)      # Turn on LED
+        GPIO.output(IMAGER_LED_PIN, GPIO.HIGH)      # Turn off LED
         # Get average pixel value for each ROI:
         roi_avgs = []
         for roi in ROIs: 
@@ -131,18 +144,16 @@ def get_image_data():    # Extract fluorescence measurements from ROIs in image
     except Exception as e:
         print(f'Exception in get_image_data(): {e}', flush=True)
 
-def get_image(data):       # Return a PIL image with colored ROI boxes for display
-    # data structure: [cardFilename, wellConfig, target_dict]
+def get_image():       # Return a PIL image with colored ROI boxes for display
     try:
         cam.start()
-        GPIO.output(LED_PIN, GPIO.LOW)
+        GPIO.output(IMAGER_LED_PIN, GPIO.LOW)
         image = cam.capture_image("main")   # capture as PIL image
         cam.stop()
-        GPIO.output(LED_PIN, GPIO.HIGH)
-        # Add ROIs to image only if the well configuration has been defined:
-        well_config = data[1]
-        if len(well_config)>0:   # make sure JS wellConfig is defined
-            image = add_ROIs(image, data) 
+        GPIO.output(IMAGER_LED_PIN, GPIO.HIGH)
+        # Add ROIs to image only if an assay card has been loaded:
+        if len(config.card_data)>0:
+            image = add_ROIs(image) 
         buffer = BytesIO()                   # create a buffer to hold the image
         image.save(buffer, format="PNG") # Convert image to PNG
         png_image = buffer.getvalue()

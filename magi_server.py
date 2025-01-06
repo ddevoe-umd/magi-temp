@@ -17,17 +17,17 @@ import RPi.GPIO as GPIO
 import multiprocessing
 from gpiozero import MCP3008
 
+import config   # Cross-module global variables
+
 sys.path.append('/home/pi/magi')  # Add application path to the Python search path
 logfile = "magi_server.log"       # Log file for stdio + stderr (see setup.sh)
-
-card_data = {}   # Assay card data dict
 
 # PID:
 PWM_PIN = 19
 FAN = 26
-LED_PIN = 13
+STATUS_STATUS_LED_PIN = 13
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(LED_PIN, GPIO.OUT)     # System status LED pin
+GPIO.setup(STATUS_LED_PIN, GPIO.OUT)     # System status LED pin
 GPIO.setup(FAN, GPIO.OUT) 
 GPIO.setup(PWM_PIN, GPIO.OUT) 
 pwm = GPIO.PWM(PWM_PIN,490)
@@ -97,10 +97,9 @@ class S(BaseHTTPRequestHandler):
         data = info[1]
         print(f'{action}: {data}', flush=True)
         
-        if action == 'setupAssay':         # Update assay information from the assay card data
-            print(f'card data received: {data}', flush=True)
-            card_data = data
-            results = "Card data accepted"
+        if action == 'setupAssay':       # Update global variables from the assay card data
+            config.card_data = data
+            results = imager.setup()
             self.wfile.write(results.encode('utf-8'))
         if action == 'start':            # Start the PID loop for temp control
             imager.clear_temp_file()     # Clear temp data file (if "end assay" not hit last run)
@@ -108,8 +107,7 @@ class S(BaseHTTPRequestHandler):
             results = "PID thread started"
             self.wfile.write(results.encode('utf-8'))
         if action == 'getImage':         # Get an image of the chip with colored ROIs
-            # data structure from magi.js: [wellConfig, target_dict]
-            results = imager.get_image(data)
+            results = imager.get_image()
             self.wfile.write(results.encode('utf-8'))
         if action == 'getImageData':          # Capture & analyze single camera image
             results = imager.get_image_data()
@@ -120,7 +118,6 @@ class S(BaseHTTPRequestHandler):
             end_pid()
             self.wfile.write(results.encode('utf-8'))
         elif action == 'adjust':            # Turn off PID loop and rename final data file
-            print(f'adjust action with data = {data}', flush=True)
             exposure_time_ms = int(data[0])
             analogue_gain = float(data[1])
             colour_gains = (float(data[2]), float(data[3]))
@@ -131,7 +128,6 @@ class S(BaseHTTPRequestHandler):
             filter_factor = data[1]
             cut_time = data[2]
             threshold = data[3]
-            print(f"filter_factor = {filter_factor}, cut_time = {cut_time}, threshold = {threshold}", flush=True)
             results = imager.analyze_data(filename, filter_factor, cut_time, threshold)
             self.wfile.write(json.dumps(results).encode('utf-8'))
             #self.wfile.write(results.encode('utf-8'))
@@ -227,7 +223,7 @@ def run(port):
     imager.setup_camera(exposure_time_ms=50, analogue_gain=0.5, color_gains=(1.2,1.0))
     print("Camera setup done", flush=True)
     print("System ready", flush=True)
-    GPIO.output(LED_PIN, GPIO.HIGH)  # turn LED on to indicate system is ready
+    GPIO.output(STATUS_LED_PIN, GPIO.HIGH)  # turn LED on to indicate system is ready
     try:
         httpd.serve_forever()     # blocking call
     except KeyboardInterrupt:
