@@ -29,6 +29,7 @@ cam = Picamera2()
 data_directory = '/path/to/ramdisk'
 
 def setup_ROIs():
+    print('setup_ROIs() called', flush=True)
     config.ROIs = []
     rows = len(config.well_config)
     for i in range(rows):
@@ -49,6 +50,8 @@ def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
 
 
 def add_ROIs(img):      # Add ROIs to a captured image
+    print('add_ROIs() called', flush=True)
+    sys.stdout.flush()
     try:
         #colors = [config.target_dict[t][0] for row in config.well_config for t in row]
         #print(colors, flush=True)
