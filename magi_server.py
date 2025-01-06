@@ -168,7 +168,7 @@ class S(BaseHTTPRequestHandler):
         return
 
 # Clear globals in config.py:
-def clear_globals()
+def clear_globals():
     well_config = []
     roi_upper_left = (0,0)   # cordinates for upper left corner of upper left ROI
     roi_width = 0            # box size
