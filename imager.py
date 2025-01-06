@@ -28,13 +28,13 @@ cam = Picamera2()
 data_directory = '/path/to/ramdisk'
 
 # Set up list containing upper left corner of all ROIs:
-well_cols = 4   # number of well columns
-well_rows = 3   # number of well rows
-roi_upper_left = (200,185)   # cordinates for upper left corner of upper left ROI
-roi_spacing = 62     # spacing (x & y) between ROI centers
-roi_width = 12
-roi_height = 28 
-ROIs = []            # list of upper left corners for all ROIs
+#well_cols = 4   # number of well columns
+#well_rows = 3   # number of well rows
+#roi_upper_left = (200,185)   # cordinates for upper left corner of upper left ROI
+#roi_spacing = 62     # spacing (x & y) between ROI centers
+#roi_width = 12
+#roi_height = 28 
+#ROIs = []            # list of upper left corners for all ROIs
 for i in range(well_rows):
     for j in range(well_cols):
         x = roi_upper_left[0] + roi_spacing*j
@@ -50,13 +50,13 @@ def add_ROIs(img):      # Add ROIs to a captured image
         img = img.convert('RGBA')   # convert captured image to support an alpha channel
         img_roi = Image.new('RGBA', img.size, (255, 255, 255, 0))  # create new image with ROIs only
         draw = ImageDraw.Draw(img_roi)
-        for idx,roi in enumerate(ROIs):
-            roi_lower_right = (roi[0] + roi_width, roi[1] + roi_height)
+        for idx,roi in enumerate(config.ROIs):
+            roi_lower_right = (roi[0] + config.roi_width, roi[1] + config.roi_height)
             fill_color = hex_to_rgb(colors[idx])  # convert "#rrggbb" to [R,G,B]
             fill_color.append(64)  # Add alpha channel for transparency
             draw.rectangle([roi, roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
             font = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 9)         # Add well target text
-            text_position = (roi[0] + roi_width + 1, roi[1])
+            text_position = (roi[0] + config.roi_width + 1, roi[1])
             draw.text(text_position, config.well_config[idx],'#ffffff',font=font)
         font_timestamp = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 12) 
         draw.text((10,10), config.card_filename, font=font_timestamp)  
