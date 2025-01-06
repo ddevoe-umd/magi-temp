@@ -37,8 +37,8 @@ data_directory = '/path/to/ramdisk'
 #ROIs = []            # list of upper left corners for all ROIs
 for i in range(config.well_rows):
     for j in range(config.well_cols):
-        x = roi_upper_left[0] + config.roi_spacing_x*j
-        y = roi_upper_left[1] + config.roi_spacing_y*i
+        x = config.roi_upper_left[0] + config.roi_spacing_x*j
+        y = config.roi_upper_left[1] + config.roi_spacing_y*i
         ROIs.append((x,y))
 
 def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
