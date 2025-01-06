@@ -38,8 +38,8 @@ def setup_ROIs():
         for c in range(cols):
             config.ROIs.append( {
                 "target": config.well_config[r][c],
-                "x": config.roi_upper_left[0] + config.roi_spacing_x*j,
-                "y": config.roi_upper_left[1] + config.roi_spacing_y*i
+                "x": config.roi_upper_left[0] + config.roi_spacing_x * c,
+                "y": config.roi_upper_left[1] + config.roi_spacing_y * r
                 } )
     print(config.ROIs, flush=True)
     sys.stdout.flush()
