@@ -101,13 +101,13 @@ def setup_camera(exposure_time_ms=50, analogue_gain=0.5, color_gains=(1.2,1.0)):
 def roi_avg(image, roi):   # Return average pixel values in ROI
     r,b,g = 0,0,0
     px,py = roi
-    for x in range(int(px),int(px+roi_width)):
-        for y in range(int(py),int(py+roi_height)):
+    for x in range(int(px),int(px+config.roi_width)):
+        for y in range(int(py),int(py+config.roi_height)):
             xy = (x,y)
             r += image.getpixel(xy)[0]
             g += image.getpixel(xy)[1]
             b += image.getpixel(xy)[2]
-    pixels = roi_width * roi_height;
+    pixels = config.roi_width * config.roi_height;
     r = int(100*r/pixels);
     g = int(100*g/pixels);
     b = int(100*b/pixels);
