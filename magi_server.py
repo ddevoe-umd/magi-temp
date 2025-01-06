@@ -101,7 +101,7 @@ class S(BaseHTTPRequestHandler):
             for val in data:
                 print(val, flush=True)
             config.well_config = data["well_config"]
-            config.roi_upper_left = (int(val) for val in data["roi_upper_left"])
+            config.roi_upper_left = tuple(int(val) for val in data["roi_upper_left"])
             config.roi_width = int(data["roi_width"])
             config.roi_height = int(data["roi_height"])
             config.roi_spacing_x = int(data["roi_spacing_x"])
@@ -169,7 +169,7 @@ def display_config_vals():
     print(config.roi_height)
     print(config.roi_spacing_x)
     print(config.roi_spacing_y)
-    print(config.positives, flush=True)
+    print(config.positives)
     sys.stdout.flush()
 
 
