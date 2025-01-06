@@ -98,14 +98,14 @@ class S(BaseHTTPRequestHandler):
         print(f'{action}: {data}', flush=True)
         
         if action == 'setupAssay':         # Update assay information from the assay card data
+            print(f'card data received: {card_data}', flush=True)
             card_data = data
-            print(card_data, flush=True)
-            results = "Card data accepted";
+            results = "Card data accepted"
             self.wfile.write(results.encode('utf-8'))
         if action == 'start':            # Start the PID loop for temp control
             imager.clear_temp_file()     # Clear temp data file (if "end assay" not hit last run)
             start_pid()
-            results = "PID thread started";
+            results = "PID thread started"
             self.wfile.write(results.encode('utf-8'))
         if action == 'getImage':         # Get an image of the chip with colored ROIs
             # data structure from magi.js: [wellConfig, target_dict]
@@ -121,9 +121,9 @@ class S(BaseHTTPRequestHandler):
             self.wfile.write(results.encode('utf-8'))
         elif action == 'adjust':            # Turn off PID loop and rename final data file
             print(f'adjust action with data = {data}', flush=True)
-            exposure_time_ms = int(data[0]);
-            analogue_gain = float(data[1]);
-            colour_gains = (float(data[2]), float(data[3]));
+            exposure_time_ms = int(data[0])
+            analogue_gain = float(data[1])
+            colour_gains = (float(data[2]), float(data[3]))
             results = imager.adjust_settings(exposure_time_ms, analogue_gain, colour_gains)
             self.wfile.write(results.encode('utf-8'))
         elif action == 'analyze':        # Filter curves & extract TTP values
