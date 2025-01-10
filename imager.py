@@ -141,6 +141,8 @@ def get_image_data():    # Extract fluorescence measurements from ROIs in image
         return(f'Exception in get_image_data(): {e}')
 
 def get_image(get_ROIs):       # Return a PIL image with colored ROI boxes for display
+    print(f'get_image() called with get_ROIs = {get_ROIs}', flush=True)
+    sys.stdout.flush()
     try:
         cam.start()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.HIGH)
@@ -153,8 +155,8 @@ def get_image(get_ROIs):       # Return a PIL image with colored ROI boxes for d
             print(f'calling add_ROIs() for {config.well_config}', flush=True)
             sys.stdout.flush()
             image = add_ROIs(image)
-        buffer = BytesIO()                   # create a buffer to hold the image
-        image.save(buffer, format="PNG") # Convert image to PNG
+        buffer = BytesIO()                 # create a buffer to hold the image
+        image.save(buffer, format="PNG")   # Convert image to PNG
         png_image = buffer.getvalue()
         png_base64 = base64.b64encode(png_image).decode('utf-8')  # Encode as base64
         image = None
