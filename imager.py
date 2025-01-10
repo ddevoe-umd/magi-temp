@@ -94,8 +94,8 @@ def adjust_settings(exposure_time_ms, analogue_gain, color_gains):
         return('error in adjust_settings()')
 
 def setup_camera(exposure_time_ms=50, analogue_gain=0.5, color_gains=(1.2,1.0)):    # Set up camera
-    config = cam.create_still_configuration(main={"size": res})
-    cam.configure(config)
+    cam_config = cam.create_still_configuration(main={"size": res})
+    cam.configure(cam_config)
     adjust_settings(exposure_time_ms, analogue_gain, color_gains)
     print('Picamera2 setup complete', flush=True)
     os.makedirs(config.data_directory, exist_ok=True)
