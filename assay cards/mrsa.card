@@ -1,9 +1,9 @@
 {
   "well_config": 
     [ 
-      ["MecA", "Nuc", "FemB", "POS"],
-      ["MecA", "Nuc", "FemB", "POS"],
-      ["MecA", "Nuc", "FemB", "NEG"]
+      ["mecA", "nuc", "femB", "POS"],
+      ["mecA", "nuc", "femB", "POS"],
+      ["mecA", "nuc", "femB", "NEG"]
     ],
   "roi_upper_left": [200,185],
   "roi_width": 12,
@@ -13,14 +13,14 @@
   "positives": 
   { "MRSA":
     [
-      "MecA",
-      "Nuc",
-      "FemB"
+      "mecA",
+      "nuc",
+      "femB"
     ],
     "MSSA":
     [
-      "Nuc",
-      "FemB"
+      "nuc",
+      "femB"
     ]
   }
 }

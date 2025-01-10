@@ -91,7 +91,7 @@
 				           min="0" max="25500" step="100" value="0">
 				</div>
 		        <div class="vertical-gap-10"></div>
-				<button id="toggleTTP" class="button" onclick="toggleTTP()">TTP mode</button>
+				<button id="toggleTTP" class="button" onclick="toggleTTP()">Show All Wells</button>
 				<button id="savefiltered" class="button" onclick="saveFiltered()"> Save Filtered </button>
 				<button id="saveTTP" class="button" onclick="saveTTP()">Save TTP</button>
 			</div>
@@ -108,7 +108,11 @@
 		<div class="log-image-row">
 			<div class="side-button-container"> 
 				<button id="getImage" class="button" role="button" onclick="getImage()"> Get Image </button>
-				<button id="adjust" class="button" onclick="adjustImager()">Adjust Imager</button>
+				<div class="roi-checkbox">
+					<label for="show-roi" class="roi-checkbox-label">Add ROIs</label>
+					<input type="checkbox" id="show-roi">
+				</div>
+			  	<button id="adjust" class="button" onclick="adjustImager()">Adjust Imager</button>
 			  	<button id="getLog" class="button" role="button" onclick="getServerLog()"> Get Log </button>
 			  	<button id="clearLog" class="button" role="button" onclick="clearServerLog()"> Clear Log </button>
 			  	<button id="reboot" class="button" role="button" onclick="reboot()"> Reboot </button>

@@ -1,0 +1,34 @@
+{
+  "well_config": 
+    [ 
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "POS"],
+      ["ermX", "tetA/C", "sul1", "sul2", "POS", "mecA", "nuc", "femB", "ermB", "ermF", "ermT"],
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "POS"],
+      ["ermF", "ermT", "ermX", "tetA/C", "sul1", "mecA", "nuc", "femB", "ermB", "sul2", "POS"],
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "POS"],
+      ["ermX", "tetA/C", "sul1", "sul2", "POS", "mecA", "nuc", "femB", "ermB", "ermF", "ermT"],
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "POS"],
+      ["ermF", "ermT", "ermX", "tetA/C", "sul1", "mecA", "nuc", "femB", "ermB", "sul2", "POS"],
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "NEG"],
+      ["tetA/C", "sul1", "sul2", "NEG", "mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX"],
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "NEG"]
+    ],
+  "roi_upper_left": [125,75],
+  "roi_width": 12,
+  "roi_height": 18,
+  "roi_spacing_x": 36,
+  "roi_spacing_y": 32,
+  "positives": 
+  { "MRSA":
+    [
+      "MecA",
+      "Nuc",
+      "FemB"
+    ],
+    "MSSA":
+    [
+      "Nuc",
+      "FemB"
+    ]
+  }
+}

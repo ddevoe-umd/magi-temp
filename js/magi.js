@@ -5,17 +5,31 @@
 // Globals:
 
 // All possible targets with chart display properties:
+/*
 const targets = {          
-  "MecA": ["#4C4CEB", "solid"],   
-  "FemB": ["#5ED649", "solid"],
-  "Nuc": ["#DD4444", "solid"],
+  "mecA": ["#4C4CEB", "solid"],   
+  "femB": ["#5ED649", "solid"],
+  "ermB": ["#FFC0CB", "solid"],
+  "ermF": ["#33CCFF", "solid"],
+  "ermT": ["#FF8C00", "solid"],
+  "ermX": ["#FFFF00", "solid"],
+  "tetA/C": ["#FF0000 ", "solid"],
+  "sul1": ["#000080", "solid"],
+  "sul2": ["#C0C0C0", "solid"],
+  "nuc": ["#DD4444", "solid"],
   "POS": ["#222222", "dash"],
   "NEG": ["#555555", "dot"]
 };
+*/
+
+var targetNames = [];      // Unique gene target names 
+var targetColors = [];     // Plot colors for each element in targetNames
 
 var cardFilename;     // Assay card file name selected by user
-var wellConfig = [];  // Well array configuration, starting at upper left
-var positives = {};   // positive detection events (not yet used...)
+
+var wellConfig = [];  // Well array configuration. Unlike the Python well_config
+                      // global, which is a 2D array, wellConfig is converted to
+                      // a 1D array starting at upper left to simplify canvasJS plotting
 
 var isRunning = false;  // flag to track if assay is currently running
 
@@ -24,7 +38,7 @@ var wakeLock;
 var assayTimer;              // timer for running an assay
 var startTime;               // assay start time stamp
 const img = document.getElementById('image');      // chip image
-var imgCaptureTime;                              // time stamp for image
+var imgCaptureTime;                                // time stamp for image
 
 const serverURL = "http://raspberrypi.local:8080";
 const serverFilePath = "/path/to/ramdisk/"
@@ -33,7 +47,10 @@ var currentFileName;          // base data file name for most recent assay
 const startColor = "#3d8f13";   // start button color when active
 const stopColor = "#a82c25";    // stop button color when active
 
-var showAllWells = false;     // select TTP display mode (all wells vs. grouped)
+const logErrorColor = "#FF0000";
+const logInfoColor = "#FFDE21";
+const logOkColor = "#00FF00";
+
 var ttpData = [];             // array to hold TTP results
 var filteredChart;            // chart to display filtered curves
 var ttpChartAll;              // chart to display all TTP values
@@ -46,6 +63,7 @@ var exposureTime = 50;     // imager parameters, initial vals must match server 
 var analogueGain = 0.5;
 var redGain = 1.2;
 var blueGain = 1.0;
+
 
 // Prevent zooming with Ctrl +/-
 document.addEventListener('keydown', function(event) {
@@ -75,11 +93,11 @@ document.addEventListener('keydown', (event) => {
 
 // Custom log function:
 function log(message, color=null, fontSize=null, bold=false, lines=false) {
-	textToAdd = "";
+	let newText = "";
   document.getElementById('log').style.backgroundColor = 'white';
   if (lines) {
-    textToAdd = `<span style="font-family: 'Courier New', Courier, monospace;">`;
-  	textToAdd += "\u2014".repeat(50) + "</span><br>";
+    newText = `<span style="font-family: 'Courier New', Courier, monospace;">`;
+  	newText += "\u2014".repeat(50) + "</span><br>";
   }
   let style = "";
   if (color) {
@@ -92,24 +110,24 @@ function log(message, color=null, fontSize=null, bold=false, lines=false) {
     style += "font-weight: bold;";
   }
   if (color || fontSize) {
-    textToAdd += `<span style="${style}">` + message + "</span>";
+    newText += `<span style="${style}">` + message + "</span>";
   } else {
-    textToAdd += message;
+    newText += message;
   }
   if (lines) {
-    textToAdd += `<span style="font-family: 'Courier New', Courier, monospace;">`;
-    textToAdd += "<br>" + "\u2014".repeat(50) + "</span>";
+    newText += `<span style="font-family: 'Courier New', Courier, monospace;">`;
+    newText += "<br>" + "\u2014".repeat(50) + "</span>";
   }
-	console.log(textToAdd);      // display message in Javascript console
 	const log = document.getElementById("log");
-	log.innerHTML += textToAdd + "<br />";      // display message in div
+	let allText = log.innerHTML + newText + "<br />";
+  log.innerHTML = allText;
 	log.scroll({top: log.scrollHeight, behavior: 'smooth'}); // pin scroll to bottom
 }
 
 
 // Custom notification window:
 function notification(message) {
-    const win = document.createElement('div');        // create the window container
+    let win = document.createElement('div');        // create the window container
     win.className = 'notification-window';
     win.style.opacity = '0.9';
     const content = document.createElement('div');    // create the content container
@@ -158,7 +176,7 @@ async function getWakeLock() {
 		wakeLock = await navigator.wakeLock.request('screen');
 		log('Wake Lock acquired');
 	} catch(err) {
-		log(`Error acquiring wake lock: ${err}`);
+		log(`Error acquiring wake lock: ${err}`, color=logErrorColor, fontsize=null, bold=false, lines=false);
 	}
 }
 
@@ -170,11 +188,10 @@ function enableElements(elements) {
 	elements.forEach(e => document.getElementById(e).disabled = false);
 }
 function disableAllElements() {
-	allElements = ["load","start","stop","saveraw","adjust","period-slider","analyze",
+	const allElements = ["load","start","stop","saveraw","adjust","period-slider","analyze",
 								"filter-slider","cut-time-slider", "threshold-slider", 
                 "toggleTTP","savefiltered","saveTTP","getImage","reboot",
                 "shutdown","getLog","clearLog"];
-	log(allElements);
 	allElements.forEach(e => document.getElementById(e).disabled = true);
 }
 
@@ -198,37 +215,52 @@ window.onload = async function () {
   var period = document.getElementById('period-slider').value;  // Get sampling period
   document.getElementById('period-slider-text').innerHTML = `Period: ${period}s`;
   // reset imager parameters in case they were previously changed without Pi restart:
+  await getFirstImage();    // Get initial image w/o ROIs
   imagerValuesToServer({
     'exposure-time': exposureTime,
     'analogue-gain': analogueGain,
     'red-gain': redGain,
     'blue-gain': blueGain
   });
-  await getFirstImage();    // Get initial image w/o ROIs
   enableElements(["load","adjust","shutdown","reboot","getImage","getLog","clearLog"]);
   // set up arrow key adjustments for sliders:
   sliderKeySetup('cut-time-slider','cut-time-slider-text');    
   sliderKeySetup('threshold-slider','threshold-slider-text'); 
 };
 
+// Tell the server to do initial housekeeping on application startup:
+async function onLoad() {
+    let message = 'onLoad';
+    let data = '';
+    let response = await queryServer(JSON.stringify([message,data]));
+    if (response.ok) {
+      results = await response.text();
+      log("Server response:")
+      log(results);
+    } else {
+      log("Server response error in onLoad()", color=logInfoColor, fontsize=null, bold=false, lines=false);
+    }
+}
+
 
 // Wait for initial image from the server at code start to make sure
 // camera is ready before allowing an assay to be run:
 async function getFirstImage() {
-  win = notification("Searching for MAGI server");
+  let win = notification("Searching for MAGI server");
   while (true) {
   	try {
+      await onLoad();  // Do initial Python server housekeeping
       const awaitResult = await getImage();
 	  	win.remove();    // close notification window
 	  	return;     
-	  } catch (e) {  // getImage() timed out
+	  } catch (e) {  // timed out...
       log(e)
       if (e.message=="Load failed") {   // timeout error
-      	log("getImage() attempt failed, retrying...");
+      	log("onLoad() / getImage() attempt failed, retrying...");
       }
-      else {   // some other kind of error, wait 5 sec before retrying
-        log("getImage() load error (not timeout), retrying in 5 sec...");
-        await new Promise(resolve => setTimeout(resolve, 5000));
+      else {   // some other kind of error, wait before retrying
+        log("onLoad() / getImage() attempt failed, retrying...");
+        await new Promise(resolve => setTimeout(resolve, 10000));
       }
 	  }
 	}
@@ -252,49 +284,114 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
+// Send POST message to server:
+async function queryServer(message) {
+  let response = await fetch( serverURL, {
+    method: "POST",
+    headers: {"Content-Type": "application/x-www-form-urlencoded"},
+    body: 'todo=' + message
+  });
+  return(response)
+}
+
+
+// Helper function, convert HSL to HEX color format:
+function hslToHex(h, s, l) {
+    s /= 100;
+    l /= 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    let r = 0, g = 0, b = 0;
+    if (0 <= h && h < 60) {
+        r = c; g = x; b = 0;
+    } else if (60 <= h && h < 120) {
+        r = x; g = c; b = 0;
+    } else if (120 <= h && h < 180) {
+        r = 0; g = c; b = x;
+    } else if (180 <= h && h < 240) {
+        r = 0; g = x; b = c;
+    } else if (240 <= h && h < 300) {
+        r = x; g = 0; b = c;
+    } else if (300 <= h && h < 360) {
+        r = c; g = 0; b = x;
+    }
+    const toHex = (value) => {
+        const hex = Math.round((value + m) * 255).toString(16);
+        return hex.padStart(2, "0");
+    };
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+// Generate an array of distinct web colors optimized for plotting:
+function generatePlotColors(n) {    
+  const colors = [];
+  const saturation = 70; // Adjust saturation for vibrant colors
+  const lightness = 50;  // Adjust lightness for readability
+  for (let i = 0; i < n; i++) {
+    const hue = Math.round((360 / n) * i); // Evenly distribute hues
+    //colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+    colors.push(hslToHex(hue, saturation, lightness));
+  }
+  return colors;
+}
+
+
 // Load a user-defined JSON card file defining the well configuration:
 function loadCard() {
-	document.getElementById('hidden-card-file-input').click();
+	document.getElementById('hidden-card-file-input').click();  // programmatically click the button
 }
 // Use an HTML input element to handle local file loading:
-document.getElementById('hidden-card-file-input').addEventListener('change', function (event) {
+document.getElementById('hidden-card-file-input').addEventListener('change', async function (event) {
   const file = event.target.files[0];    // get filename from user dialog
   if (file && file.name.endsWith('.card')) {
+    disableElements(["start","period-slider"]);
     cardFilename = file.name;
     const reader = new FileReader();
-    reader.onload = function (e) {
+    reader.onload = async function (e) {
       try {
         const cardJson = JSON.parse(e.target.result);
-        // Extract card information:
-        wellConfig = cardJson["well_config"];
-        positives = cardJson["positives"];
-			  // Display & dim initial empty charts:
-        if (filteredChart == null) {   // filteredChart has not yet been displayed,
-          displayFilteredData([[]]);}  // so display chart with empty data
-			  dimChart(filteredChart);
-			  displayTTP();
-			  dimChart(ttpChartAll);
-			  enableElements(["start","period-slider"]);		// Let user start the assay
-			  log("Assay card loaded:");
-        log(wellConfig);
-        log(JSON.stringify(positives));
-        // Display the assay card name in the start button:
-        const html = `Run card:<br>${cardFilename.substring(0, cardFilename.length-5)}`;
-        document.getElementById('start').innerHTML = html;
-        // Get a new image with ROIs matched to the assay card:
-			  getImage();
-        // Highlight start button after card loading:
-        document.getElementById('start').style.backgroundImage = `linear-gradient(${startColor}, ${startColor})`;
-        document.getElementById('start').style.borderWidth = "1px";
+        
+        // Convert 2D array format of well_config from assay card to a
+        // 1D array for ease of plotting with CanvasJS:
+        wellConfig = [];
+        for (row of cardJson["well_config"]) for (ele of row) wellConfig.push(ele);
 
-        // Contact the server to set up remote assay info:
+        // Extract an array with all unique targets:
+        const uniqueTargetSet = new Set(wellConfig);
+        targetNames = Array.from(uniqueTargetSet);
+        // Set up plot colors for unique targets:
+        targetColors = generatePlotColors(targetNames.length);
+        
+        // Contact the server to set up remote assay info (ROIs, well config etc.):
         let message = "setupAssay";
-        let data = cardJson;
+        let data = [cardFilename, cardJson, targetNames, targetColors];
+        console.log(JSON.stringify(data));
         let response = await queryServer(JSON.stringify([message,data]));
         if (response.ok) {
           results = await response.text();
-          log("Server response:")
+          log("Server response:");
           log(results);
+          // Display & dim initial empty charts:
+          if (filteredChart == null) {   // filteredChart has not yet been displayed,
+            displayFilteredData([[]]);}  // so display chart with empty data
+          dimChart(filteredChart);
+          displayTTPGrouped();
+          dimChart(ttpChartGrouped);
+          
+          // Get a new image (with ROIs matched to the assay card if ROI checkbox selected):
+          getROIs = document.getElementById("show-roi").checked;
+          await getImage(getROIs);
+
+          enableElements(["start","period-slider"]);  // Let user start the assay
+          log("Assay card loaded");
+          // Display the assay card name in the start button:
+          const html = `Run card:<br>${cardFilename.substring(0, cardFilename.length-5)}`;
+          document.getElementById('start').innerHTML = html;
+          // Highlight start button after card loading:
+          document.getElementById('start').style.backgroundImage = `linear-gradient(${startColor}, ${startColor})`;
+          document.getElementById('start').style.borderWidth = "1px";
+
         } else {
           log("Server response error in loadCard()");
         }
@@ -304,11 +401,11 @@ document.getElementById('hidden-card-file-input').addEventListener('change', fun
       }
     };
     reader.onerror = function () {
-      log('Read error (check assay card format)');
+      log('Read error (check assay card format)', color=logErrorColor, fontsize=7, bold=false, lines=false);
     };
     reader.readAsText(file);
   } else {
-    log('Please select a valid .card file');
+    log('Select a valid .card file', color=logErrorColor, fontsize=7, bold=false, lines=false);
   }
 });
 
@@ -325,8 +422,8 @@ async function imagerValuesToServer(values) {
     Analog gain: ${values["analogue-gain"]}<br>
     Red channel gain: ${redGain}<br>
     Blue channel gain: ${blueGain}`,
-    color='#FFDE21', fontsize=7, bold=false, lines=true
-    );
+    color=logInfoColor, fontsize=7, bold=false, lines=true
+  );
   // Ask server to adjust camera settings:
   log("Adjusting imager settings...");
   let message = 'adjust';
@@ -334,13 +431,18 @@ async function imagerValuesToServer(values) {
   let response = await queryServer(JSON.stringify([message,data]));
   if (response.ok) {
     results = await response.text();
-    log(results, color='#00ff00', fontsize=7, bold=false, lines=false);
+    log(results, color=logOkColor, fontsize=7, bold=false, lines=false);
   }
 }
 
 // Open a modal dialog to allow user to change imager settings:
 async function adjustImager() {
   const modalWindow = window.open('', 'ModalWindow', 'width=300,height=170');
+  // Check if window is already open:
+  if (modalWindow.document.getElementById('exposure-time')) {
+    modalWindow.focus();
+    return;   
+  }
   modalWindow.document.write(`
     <!DOCTYPE html>
     <html>
@@ -481,16 +583,6 @@ function sliderKeySetup(sliderName, sliderTextName) {
 }
 
 
-// Send POST message to server:
-async function queryServer(message) {
-	let response = await fetch( serverURL, {
-		method: "POST",
-    headers: {"Content-Type": "application/x-www-form-urlencoded"},
-		body: 'todo=' + message
-	});
-	return(response)
-}
-
 async function startPID() {
 	log("startPID() called");
 	wakeLock = getWakeLock();     // Acquire wake lock when assay starts
@@ -507,6 +599,8 @@ async function startPID() {
 	}
 }
 
+
+
 async function endAssay() {
 	log("endAssay() called");
 	await wakeLock.release();      // Release the wake lock when assay ends
@@ -521,21 +615,21 @@ async function endAssay() {
 		let message = 'end';
 	  let data = '';
 		let response = await queryServer(JSON.stringify([message,data]));
+    results = await response.text();
+    log("Server response:")
+    log(results);
 		if (response.ok) {
 			// Update interface elements appropriately:
       document.getElementById('stop').style.backgroundImage = "linear-gradient(#464d55, #25292e)";
       document.getElementById('stop').style.borderWidth = "0px";
       enableElements(["saveraw","analyze","filter-slider","cut-time-slider","threshold-slider",
                       "shutdown","reboot","getLog","clearLog"]);
-      results = await response.text();
-			log("Server response:")
-			log(results);
 			currentFileName = results;
 	   	analyzeData();
 		}
 	}
 	else {
-			log("endAssay() cancelled");
+			log("endAssay() cancelled", color=logInfoColor, fontsize=7, bold=false, lines=true);
 	}
 }
 
@@ -555,20 +649,22 @@ async function getImageData() {
     		return(newData);
     	}
     } catch(e) {
-      log(`Error in getImageData: ${e}`);
+      log(`Error in getImageData: ${e}`, color=logErrorColor, fontsize=7, bold=false, lines=true
+);
     }
   }
 }
 
-async function getImage() {
+async function getImage(getROIs=false) {
 	log("getImage() called");
   document.getElementById('image').style.backgroundColor = 'white';
 	let message = 'getImage';
-	let data = [cardFilename, wellConfig, targets];  // info for image ROIs etc.
-	let response = await queryServer(JSON.stringify([message,data]));
+	//let data = [cardFilename, wellConfig, targets];  // info for image ROIs etc.
+  let data = getROIs;
+  let response = await queryServer(JSON.stringify([message,data]));
   if (response.ok) {
 		results = await response.text();
-		log("Image data received")
+		log("Image data received", color=logOkColor, fontsize=null, bold=false, lines=false);
 		const base64Image = results;
 		// Display the image:
 		img.src = base64Image;
@@ -679,20 +775,25 @@ async function analyzeData() {
 		  // raw image data contains too many zero values:
 		  if (results.includes("NaN")) {
 		  	log("NaN in filter data (check if too many zero brightness values)",
-          color="#dd0000", fontSize=null, bold=false, lines=false);
+          color=logErrorColor, fontSize=null, bold=false, lines=false
+        );
 		  }
 		  else {
 				let data = JSON.parse(results);
 		    ttpData = data[0];  // ttpData is global
 		    let xy = data[1];
 		    displayFilteredData(xy);
-				displayTTP();
+				displayTTPGrouped();
 			  enableElements(["savefiltered","toggleTTP","saveTTP"]);
+        log("Analysis complete",
+          color=logOkColor, fontSize=null, bold=false, lines=false
+        );
 			}
 		}
 		else { 
 			log("No filter data returned: check # data points (>21 required)",
-        color="#dd0000", fontSize=null, bold=false, lines=false);
+        color=logErrorColor, fontSize=null, bold=false, lines=false
+      );
 		}
 	}
   win.remove();    // Remove the notification window
@@ -747,7 +848,8 @@ async function shutdown() {
 		if (response.ok) {} // Pi should shut down, so no response
 	}
 	else {
-		log("shutdown cancelled");
+		log("shutdown cancelled", color=logInfoColor, fontsize=null, bold=false, lines=false
+);
 	}
 }
 
@@ -767,7 +869,8 @@ async function reboot() {
 		getFirstImage(); 
 	}
 	else {
-		log("reboot cancelled");
+		log("reboot cancelled", color=logInfoColor, fontsize=null, bold=false, lines=false
+);
 	}
 }
 
@@ -782,9 +885,9 @@ async function getServerLog() {
 		let responseText = await response.text();
 		responseText = responseText.replace(/\\n/g, "<br>");  // repace newline with html break
 		responseText = responseText.replace(/^"|"$/g, '');    // strip double quotes @ start and end
-		log("Start Server Log", color="#fff", fontSize=10, bold=false, lines=true);
+		log("Start Server Log", color="#fff", fontSize=9, bold=false, lines=true);
 		log(responseText, color="#fff", fontSize=8, bold=true); 
-    log("End Server Log", color="#fff", fontSize=10, bold=false, lines=true);
+    log("End Server Log", color="#fff", fontSize=9, bold=false, lines=true);
 	} 
 }
 
@@ -803,7 +906,7 @@ async function clearServerLog() {
 		} 
 	}
 	else {
-		log("clearServerLog() cancelled");
+		log("clearServerLog() cancelled", color=logInfoColor, fontsize=null, bold=false, lines=false);
 	}
 }
 
@@ -831,6 +934,7 @@ function addIntCommas(num) {
   }
 }
 
+
 // Set up charts for both the raw & filtered amplification curves:
 function setupAmplificationChart(targetContainer) {
 	// Set up empty array with length equal to the number of wells, see toggleGroupedSeries().
@@ -841,23 +945,23 @@ function setupAmplificationChart(targetContainer) {
   let wellArray = Array.from({ length: wellConfig.length }, () => []);
 	let plotInfo = [];
 	let g = 1;   // group number (for grouping target sets in charts)
-	for (const key in targets) {
-		let key_found = false;
+  for (let idx=0; idx<targetNames.length; idx++) {
+		let wasTargetNameFound = false;
 		for (let i=0; i<wellConfig.length; i++) {
-      if (wellConfig[i] == key) {
+      if (wellConfig[i] == targetNames[idx]) {
       	// Set up plot data & shared plot attributes:
 				data_dict = {	
-					name: key,
+					name: targetNames[idx],
 					type: "line",
 					group: g,
 					dataPoints: wellArray[i],
-		      color: targets[wellConfig[i]][0],
-					lineDashType: targets[wellConfig[i]][1]
+		      color: targetColors[idx],
+					lineDashType: "solid"
 				};
 				// Only show each gene target in the legend once:
-				if (!key_found) {
+				if (!wasTargetNameFound) {
 					data_dict.showInLegend = true;
-					key_found = true;
+					wasTargetNameFound = true;
 				}
 				plotInfo.push(data_dict);
       }
@@ -1012,9 +1116,9 @@ function dimChart(chart) {
 // Start a new assay:
 async function startAssay() {
 	log("startAssay() called");
-	log(`Starting assay with ${cardFilename}`, color="#fff", fontSize=10, bold=false, lines=true);
+	log(`Starting assay with ${cardFilename}`, color="#fff", fontSize=9, bold=false, lines=true);
   // Update interface elements appropriately:
-  document.getElementById("toggleTTP").innerHTML = "Group wells";
+  document.getElementById("toggleTTP").innerHTML = "Show All Wells";  // Always start with grouped TTP values
   document.getElementById('stop').style.backgroundImage = `linear-gradient(${stopColor}, ${stopColor})`;
   document.getElementById('stop').style.borderWidth = "1px";
 	enableElements(["stop"]);
@@ -1026,8 +1130,11 @@ async function startAssay() {
   if (filteredChart) {
   	log("Hiding filtered data & TTP charts");
     dimChart(filteredChart);
-    dimChart(ttpChartAll);
-    if (ttpChartGrouped) {
+    // Dim TTP chart based on which chart option (if any) was displayed from previous assay:
+    const nextTTPMode = document.getElementById("toggleTTP").innerHTML; // "Show All Wells" or "Show Grouped"
+    if (nextTTPMode=="Show Grouped" && ttpChartAll) {
+      dimChart(ttpChartAll);
+    } else if (nextTTPMode=="Show All Wells" && ttpChartGrouped) {
       dimChart(ttpChartGrouped);
     }
   }
@@ -1045,7 +1152,8 @@ async function startAssay() {
   document.getElementById('filter-slider').dispatchEvent(inputEvent);
   document.getElementById('cut-time-slider').value = 0;
   document.getElementById('cut-time-slider').dispatchEvent(inputEvent);
-  log("Curve analysis parameters reset");
+  log("Curve analysis parameters reset",    color=logInfoColor, fontsize=7, bold=false, lines=true
+);
 
 	// Start the assay:
   isRunning = true;
@@ -1055,7 +1163,7 @@ async function startAssay() {
 
   async function updateChart() {
     if (!isRunning) {
-      log("Assay stopped");
+      log("Assay stopped", color=logInfoColor, fontsize=null, bold=false, lines=false);
       return;
     }
     let now = Date.now();   
@@ -1087,7 +1195,7 @@ async function startAssay() {
 
 
 
-function displayFilteredData(data) {
+async function displayFilteredData(data) {
 	let wellArray;
 	[filteredChart, wellArray] = setupAmplificationChart('filteredDataChart');
 	filteredChart.options.title.text = "Fluorescence (filtered)";
@@ -1104,15 +1212,14 @@ function displayFilteredData(data) {
 
 // Display TTP for all wells individually:
 function displayTTP() {
-  document.getElementById("toggleTTP").innerHTML = "Group Wells";
   ttpBars = [];
-  for (const key in targets) {
+  for (let idx=0; idx<targetNames.length; idx++) {
 		for (let i=0; i<wellConfig.length; i++) {
-			if (wellConfig[i] == key) {
+			if (wellConfig[i] == targetNames[idx]) {
 				ttpBars.push({
 					y: ttpData[i],
-					label: key,
-					color: targets[key][0]
+					label: targetNames[idx],
+					color: targetColors[idx]
 				});
 			}
 		}
@@ -1129,7 +1236,9 @@ function displayTTP() {
 			title: "TTP (min)",
 			titleFontSize: 14
 		},		
-		axisX:{ interval: 1 },   // show all axis labels
+		axisX:{ 
+      interval: 1      // show all axis labels
+    },   
 		data: [{        
 			type: "column",  
 			showInLegend: false, 
@@ -1165,16 +1274,15 @@ function stdDevArray(arr) {
 
 
 // Display mean & std dev TTP for each target group:
-function displayTTPavgStdDev() {
-	document.getElementById("toggleTTP").innerHTML = "Show All Wells";
+function displayTTPGrouped() {
 	// Calculate mean and standard deviation for each target:
   let dataPoints = [];
   let errorBars = [];
-  for (const key in targets) {
+  for (let idx=0; idx<targetNames.length; idx++) {
   	let vals = [];
   	let sum = 0;
 		for (let i=0; i<wellConfig.length; i++) {
-			if (wellConfig[i] == key) {
+			if (wellConfig[i] == targetNames[idx]) {
 				vals.push(ttpData[i]);
 			}
 		}
@@ -1182,15 +1290,15 @@ function displayTTPavgStdDev() {
 		stdev = stdDevArray(vals);
 		dataPoints.push({ 
 			y: mean,
-			label: key,
+			label: targetNames[idx],
 			mean: mean.toFixed(2),             // custom tooltip entry
-			color: targets[key][0]
+			color: targetColors[idx]
 		});
 		errorBars.push({
 			y: [mean-stdev, mean+stdev],
 			stdev: stdev.toFixed(2),           // custom tooltip entry
 			rsd: (100*stdev/mean).toFixed(2),  // custom tooltip entry
-			label: key
+			label: targetNames[idx]
 		});
   }
   // Set up chart:
@@ -1251,13 +1359,15 @@ function displayTTPavgStdDev() {
 
 // Switch between TTP display modes (all wells vs. grouped wells):
 function toggleTTP() {
-	if (showAllWells) { 
-		displayTTP(); 
-	}
-	else {
-		displayTTPavgStdDev();
-	}
-	showAllWells = !showAllWells;
+  nextTTPMode = document.getElementById("toggleTTP").innerHTML;
+
+  if (nextTTPMode=="Show Grouped") {
+    displayTTPGrouped();
+    document.getElementById("toggleTTP").innerHTML = "Show All Wells";
+  } else if (nextTTPMode=="Show All Wells" && ttpChartGrouped) {
+    displayTTP(); 
+    document.getElementById("toggleTTP").innerHTML = "Show Grouped";
+  }
 }
 
 

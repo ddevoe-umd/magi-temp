@@ -62,6 +62,16 @@ html, body {
   height: 10px;
 }
 
+.roi-checkbox-label {
+  font-size: 11px;
+}
+
+.roi-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .main-container {
   display: flex;
   flex-direction: column;

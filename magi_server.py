@@ -19,18 +19,17 @@ from gpiozero import MCP3008
 
 import config   # Cross-module global variables for all Python codes
 
+# import objgraph # temp module for tracking memory leaks
+
 sys.path.append('/home/pi/magi')  # Add application path to the Python search path
 logfile = "magi_server.log"       # Log file for stdio + stderr (see setup.sh)
 
 # PID:
-PWM_PIN = 19
-FAN = 26
-STATUS_LED_PIN = 13
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(STATUS_LED_PIN, GPIO.OUT)     # System status LED pin
-GPIO.setup(FAN, GPIO.OUT) 
-GPIO.setup(PWM_PIN, GPIO.OUT) 
-pwm = GPIO.PWM(PWM_PIN,490)
+GPIO.setup(config.STATUS_LED_PIN, GPIO.OUT)     # System status LED pin
+GPIO.setup(config.FAN, GPIO.OUT) 
+GPIO.setup(config.PWM_PIN, GPIO.OUT) 
+pwm = GPIO.PWM(config.PWM_PIN,490)
 pid = PID(Kp=12.635, Ki=1.0063, Kd=0, setpoint=0)     # Can add sample_time, output_limits, etc.
 pid.output_limits = (0,100)
 b_bias = 0.82                   # value for linear interpolation of temperature
@@ -95,8 +94,11 @@ class S(BaseHTTPRequestHandler):
         info = json.loads(post_dict['todo'])
         action = info[0]
         data = info[1]
-        print(f'{action}: {data}', flush=True)
+        #print(f'{action}: {data}', flush=True)
         
+        # objgraph.show_most_common_types()  # check memory use
+        # sys.stdout.flush()
+
         if action == 'setupAssay':       # Update global variables from the assay card data
             config.card_filename = data[0]
             card_data = data[1]
@@ -107,6 +109,8 @@ class S(BaseHTTPRequestHandler):
             config.roi_spacing_x = int(card_data["roi_spacing_x"])
             config.roi_spacing_y = int(card_data["roi_spacing_y"])
             config.positives = card_data["positives"]
+            config.target_names = data[2]
+            config.target_colors = data[3]
             imager.setup_ROIs()  # set up the ROIs from assay card data
             imager.get_image()   # capture a new image showing ROIs
             results = "config.py globals updated from card data"
@@ -115,13 +119,14 @@ class S(BaseHTTPRequestHandler):
         if action == 'onLoad':           # Housekeeping on starting application
             results = clear_globals()              # clear all global variables
             self.wfile.write(results.encode('utf-8'))
-        if action == 'start':            # Start the PID loop for temp control
-            imager.clear_temp_file()     # Clear temp data file (if "end assay" not hit last run)
+        if action == 'start':    # Start the PID loop for temp control
+            clear_temp_file()    # Clear temp data file (if "end assay" not hit last run)
             start_pid()
             results = "PID thread started"
             self.wfile.write(results.encode('utf-8'))
         if action == 'getImage':         # Get an image of the chip with colored ROIs
-            results = imager.get_image()
+            get_ROIs = data
+            results = imager.get_image(get_ROIs)
             self.wfile.write(results.encode('utf-8'))
         if action == 'getImageData':          # Capture & analyze single camera image
             results = imager.get_image_data()
@@ -167,6 +172,11 @@ class S(BaseHTTPRequestHandler):
     def log_message(self, format, *args):  # Suppress server output
         return
 
+# Delete contents of the temp data file:
+def clear_temp_file():
+    with open(config.data_directory + '/temp_data.csv', 'w') as f:
+        pass     
+
 # Clear globals in config.py:
 def clear_globals():
     config.well_config = []
@@ -177,6 +187,8 @@ def clear_globals():
     config.roi_spacing_y = 0        
     config.ROIs = []                # list of upper left corners for all ROIs
     config.card_filename = ''
+    config.target_names = []
+    config.target_colors = []
     return('globals cleared')
 
 
@@ -217,7 +229,7 @@ def run_pid(stop_event):
             values = [x*1023 for x in value_raw]
                 
             # Change the duty cycle based on the ADC reading    
-            duty_cycle = pid(b_bias*cali_fun(values[1] -  values[0]) + (1-b_bias)*cali_fun(values[2] -  values[0]))
+            duty_cycle = pid(b_bias*cali_fun(values[1] - values[0]) + (1-b_bias)*cali_fun(values[2] - values[0]))
             pwm.ChangeDutyCycle(duty_cycle)
     
             # Store values every 50ms to use for plotting
@@ -226,13 +238,13 @@ def run_pid(stop_event):
                 times += [(ptrd - start_time)/60e9]
                 board += [cali_fun(values[1] -  values[0])]
                 chip += [cali_fun(values[2] -  values[0])]
-                well_temp = b_bias*cali_fun(values[1] -  values[0]) + (1-b_bias)*cali_fun(values[2] -  values[0])
+                well_temp = b_bias*cali_fun(values[1] - values[0]) + (1-b_bias)*cali_fun(values[2] - values[0])
                 well += [well_temp]
         except Exception as e:
             print(f'Exception in run_pid: {e}', flush=True)
 
 def start_pid():
-    GPIO.output(FAN, GPIO.HIGH)   # Turn on system fan
+    GPIO.output(config.FAN, GPIO.HIGH)   # Turn on system fan
     t = threading.Thread(target=run_pid, args=(stop_event,))    # Start the PID loop
     t.daemon = True
     t.start()
@@ -250,7 +262,7 @@ def run(port):
     imager.setup_camera(exposure_time_ms=50, analogue_gain=0.5, color_gains=(1.2,1.0))
     print("Camera setup done", flush=True)
     print("System ready", flush=True)
-    GPIO.output(STATUS_LED_PIN, GPIO.HIGH)  # turn LED on to indicate system is ready
+    GPIO.output(config.STATUS_LED_PIN, GPIO.HIGH)  # turn LED on to indicate system is ready
     try:
         httpd.serve_forever()     # blocking call
     except KeyboardInterrupt:
