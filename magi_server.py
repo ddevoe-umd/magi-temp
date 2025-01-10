@@ -125,8 +125,8 @@ class S(BaseHTTPRequestHandler):
             results = "PID thread started"
             self.wfile.write(results.encode('utf-8'))
         if action == 'getImage':         # Get an image of the chip with colored ROIs
-            get_ROIs = data
-            results = imager.get_image(get_ROIs)
+            add_ROIs = data
+            results = imager.get_image(add_ROIs)
             self.wfile.write(results.encode('utf-8'))
         if action == 'getImageData':          # Capture & analyze single camera image
             results = imager.get_image_data()
