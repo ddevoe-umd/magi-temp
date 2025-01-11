@@ -60,14 +60,16 @@ def annotate_image(img, roi_opacity):      # Add timestamp and ROIs to image
         # add ROIs:
         if len(config.well_config) > 0:
             for roi in config.ROIs:
-                roi_lower_right = (roi['x'] + config.roi_width, roi['y'] + config.roi_height)
+                x = int(roi['x'])
+                y = int(roi['y'])
+                roi_lower_right = (x + config.roi_width, y + config.roi_height)
                 idx = config.target_names.index(roi['target'])      # find index in target_names matching current ROI targe
                 fill_color = hex_to_rgb(config.target_colors[idx])  # convert "#rrggbb" to [R,G,B]
                 # fill_color.append(64)                               # Add alpha channel for transparency
                 fill_color.append(float(roi_opacity)*255/100)           # Add alpha channel for transparency
-                draw.rectangle([(roi['x'],roi['y']), roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
+                draw.rectangle([(x,y), roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
                 font = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 9)         # Add well target text
-                text_position = (roi['x'] + config.roi_width + 1, roi['y'])
+                text_position = (x + config.roi_width + 1, y)
                 draw.text(text_position, roi['target'],'#ffffff',font=font)
         img_new = Image.alpha_composite(img, img_tmp)  # composite captured & ROI images
         img = None
