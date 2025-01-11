@@ -111,9 +111,8 @@ class S(BaseHTTPRequestHandler):
             config.positives = card_data["positives"]
             config.target_names = data[2]
             config.target_colors = data[3]
-            roi_opacity = data[4]
             imager.setup_ROIs()  # set up the ROIs from assay card data
-            imager.get_image(roi_opacity)   # capture a new image showing ROIs
+            imager.get_image(True)   # capture a new image showing ROIs
             results = "config.py globals updated from card data"
             self.wfile.write(results.encode('utf-8'))
 
@@ -125,9 +124,9 @@ class S(BaseHTTPRequestHandler):
             start_pid()
             results = "PID thread started"
             self.wfile.write(results.encode('utf-8'))
-        if action == 'getImage':     # Get an image of the chip with colored ROIs
-            roi_opacity = data
-            results = imager.get_image(roi_opacity)
+        if action == 'getImage':         # Get an image of the chip with colored ROIs
+            add_ROIs = data
+            results = imager.get_image(add_ROIs)
             self.wfile.write(results.encode('utf-8'))
         if action == 'getImageData':          # Capture & analyze single camera image
             results = imager.get_image_data()

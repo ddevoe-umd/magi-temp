@@ -2,6 +2,26 @@
    Main MAGI Javascript code
 */
 
+// Globals:
+
+// All possible targets with chart display properties:
+/*
+const targets = {          
+  "mecA": ["#4C4CEB", "solid"],   
+  "femB": ["#5ED649", "solid"],
+  "ermB": ["#FFC0CB", "solid"],
+  "ermF": ["#33CCFF", "solid"],
+  "ermT": ["#FF8C00", "solid"],
+  "ermX": ["#FFFF00", "solid"],
+  "tetA/C": ["#FF0000 ", "solid"],
+  "sul1": ["#000080", "solid"],
+  "sul2": ["#C0C0C0", "solid"],
+  "nuc": ["#DD4444", "solid"],
+  "POS": ["#222222", "dash"],
+  "NEG": ["#555555", "dot"]
+};
+*/
+
 var targetNames = [];      // Unique gene target names 
 var targetColors = [];     // Plot colors for each element in targetNames
 
@@ -43,6 +63,7 @@ var exposureTime = 50;     // imager parameters, initial vals must match server 
 var analogueGain = 0.5;
 var redGain = 1.2;
 var blueGain = 1.0;
+
 
 // Prevent zooming with Ctrl +/-
 document.addEventListener('keydown', function(event) {
@@ -169,8 +190,8 @@ function enableElements(elements) {
 function disableAllElements() {
 	const allElements = ["load","start","stop","saveraw","adjust","period-slider","analyze",
 								"filter-slider","cut-time-slider", "threshold-slider", 
-                "toggleTTP","savefiltered","saveTTP","getImage","roi-opacity-slider",
-                "reboot","shutdown","getLog","clearLog"];
+                "toggleTTP","savefiltered","saveTTP","getImage","add-rois","reboot",
+                "shutdown","getLog","clearLog"];
 	allElements.forEach(e => document.getElementById(e).disabled = true);
 }
 
@@ -344,7 +365,7 @@ document.getElementById('hidden-card-file-input').addEventListener('change', asy
         
         // Contact the server to set up remote assay info (ROIs, well config etc.):
         let message = "setupAssay";
-        let data = [cardFilename, cardJson, targetNames, targetColors];
+        let data = [cardFilename, cardJson, targetNames, targetColors, false];
         console.log(JSON.stringify(data));
         let response = await queryServer(JSON.stringify([message,data]));
         if (response.ok) {
@@ -359,7 +380,7 @@ document.getElementById('hidden-card-file-input').addEventListener('change', asy
           dimChart(ttpChartGrouped);
           
           // Get a new image (with ROIs matched to the assay card if ROI checkbox selected):
-          enableElements(["roi-opacity-slider"]);
+          enableElements(["add-rois"]);
           await getImage();
 
           enableElements(["start","period-slider"]);  // Let user start the assay
@@ -604,6 +625,7 @@ async function endAssay() {
       enableElements(["saveraw","analyze","filter-slider","cut-time-slider","threshold-slider",
                       "shutdown","reboot","getLog","clearLog"]);
 			currentFileName = results;
+      log(`currentFileName: ${currentFileName}`)
 	   	analyzeData();
 		}
 	}
@@ -640,7 +662,7 @@ async function getImage() {
 	log("getImage() called");
   document.getElementById('image').style.backgroundColor = 'white';
 	let message = 'getImage';
-  let data = document.getElementById('roi-opacity-slider').value;  // ROI opacity for image
+  let data = document.getElementById('add-rois').checked;  // status of checkbox to show ROIs in image
   let response = await queryServer(JSON.stringify([message,data]));
   if (response.ok) {
 		results = await response.text();

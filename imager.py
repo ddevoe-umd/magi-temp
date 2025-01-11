@@ -13,7 +13,7 @@ from io import BytesIO
 
 import config   # Cross-module global variables for all Python codes
 
-font_path = "/home/pi/magi/fonts"
+font_path = "~/magi/fonts"
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(config.IMAGER_LED_PIN, GPIO.OUT) 
@@ -46,7 +46,7 @@ def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
     return [int(h[i:i+2], 16) for i in (1, 3, 5)]
 
 
-def annotate_image(img, roi_opacity):      # Add timestamp and ROIs to image
+def annotate_image(img, add_roi=False):      # Add timestamp and ROIs to image
     print('annotate_image() called', flush=True)
     sys.stdout.flush()
     try:
@@ -58,18 +58,15 @@ def annotate_image(img, roi_opacity):      # Add timestamp and ROIs to image
         draw.text((10,10), config.card_filename, font=font_timestamp)  
         draw.text((10,20), time.strftime("%Y%m%d_%Hh%Mm%Ss"), font=font_timestamp)
         # add ROIs:
-        if len(config.well_config) > 0:
+        if add_roi:
             for roi in config.ROIs:
-                x = int(roi['x'])
-                y = int(roi['y'])
-                roi_lower_right = (x + config.roi_width, y + config.roi_height)
+                roi_lower_right = (roi['x'] + config.roi_width, roi['y'] + config.roi_height)
                 idx = config.target_names.index(roi['target'])      # find index in target_names matching current ROI targe
                 fill_color = hex_to_rgb(config.target_colors[idx])  # convert "#rrggbb" to [R,G,B]
-                # fill_color.append(64)                               # Add alpha channel for transparency
-                fill_color.append(int(int(roi_opacity)*255/100))           # Add alpha channel for transparency
-                draw.rectangle([(x,y), roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
+                fill_color.append(64)                               # Add alpha channel for transparency
+                draw.rectangle([(roi['x'],roi['y']), roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
                 font = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 9)         # Add well target text
-                text_position = (x + config.roi_width + 1, y)
+                text_position = (roi['x'] + config.roi_width + 1, roi['y'])
                 draw.text(text_position, roi['target'],'#ffffff',font=font)
         img_new = Image.alpha_composite(img, img_tmp)  # composite captured & ROI images
         img = None
@@ -147,14 +144,14 @@ def get_image_data():    # Extract fluorescence measurements from ROIs in image
         return(f'Exception in get_image_data(): {e}')
 
 # Return a PIL image with time stamp (add colored ROI boxes if add_ROIs true):
-def get_image(roi_opacity):
+def get_image(add_ROIs):
     try:
         cam.start()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.HIGH)
         image = cam.capture_image("main")   # capture as PIL image
         cam.stop()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.LOW)
-        image = annotate_image(image, roi_opacity) 
+        image = annotate_image(image, add_ROIs)
         buffer = BytesIO()                 # create a buffer to hold the image
         image.save(buffer, format="PNG")   # Convert image to PNG
         png_image = buffer.getvalue()
@@ -171,7 +168,9 @@ def end_imaging():
     # move temp data contents to time-stamped file:
     output_filename = time.strftime("%Y%m%d_%Hh%Mm%Ss")
     os.rename(config.data_directory + '/temp_data.csv', config.data_directory + '/' + output_filename + '.csv')
-    clear_temp_file()
+    # clear_temp_file()  # This now happens in magi_server.py
+    print(f'end_imaging() called, output_filename={output_filename}', flush=True)
+    sys.stdout.flush()
     return(output_filename)
 
 def analyze_data(filename, filter_factor, cut_time, threshold):
