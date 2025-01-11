@@ -46,7 +46,7 @@ def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
     return [int(h[i:i+2], 16) for i in (1, 3, 5)]
 
 
-def annotate_image(img, add_roi=False):      # Add timestamp and ROIs to image
+def annotate_image(img, roi_opacity):      # Add timestamp and ROIs to image
     print('annotate_image() called', flush=True)
     sys.stdout.flush()
     try:
@@ -58,12 +58,13 @@ def annotate_image(img, add_roi=False):      # Add timestamp and ROIs to image
         draw.text((10,10), config.card_filename, font=font_timestamp)  
         draw.text((10,20), time.strftime("%Y%m%d_%Hh%Mm%Ss"), font=font_timestamp)
         # add ROIs:
-        if add_roi:
+        if len(config.well_config) > 0:
             for roi in config.ROIs:
                 roi_lower_right = (roi['x'] + config.roi_width, roi['y'] + config.roi_height)
                 idx = config.target_names.index(roi['target'])      # find index in target_names matching current ROI targe
                 fill_color = hex_to_rgb(config.target_colors[idx])  # convert "#rrggbb" to [R,G,B]
-                fill_color.append(64)                               # Add alpha channel for transparency
+                # fill_color.append(64)                               # Add alpha channel for transparency
+                fill_color.append(int(roi_opacity)*255/100)           # Add alpha channel for transparency
                 draw.rectangle([(roi['x'],roi['y']), roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
                 font = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 9)         # Add well target text
                 text_position = (roi['x'] + config.roi_width + 1, roi['y'])
@@ -144,14 +145,14 @@ def get_image_data():    # Extract fluorescence measurements from ROIs in image
         return(f'Exception in get_image_data(): {e}')
 
 # Return a PIL image with time stamp (add colored ROI boxes if add_ROIs true):
-def get_image(add_ROIs):
+def get_image(roi_opacity):
     try:
         cam.start()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.HIGH)
         image = cam.capture_image("main")   # capture as PIL image
         cam.stop()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.LOW)
-        image = annotate_image(image, add_ROIs)
+        image = annotate_image(image, roi_opacity) 
         buffer = BytesIO()                 # create a buffer to hold the image
         image.save(buffer, format="PNG")   # Convert image to PNG
         png_image = buffer.getvalue()
