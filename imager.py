@@ -58,31 +58,21 @@ def annotate_image(img, roi_opacity):      # Add timestamp and ROIs to image
         draw.text((10,10), config.card_filename, font=font_timestamp)  
         draw.text((10,20), time.strftime("%Y%m%d_%Hh%Mm%Ss"), font=font_timestamp)
         # add ROIs:
-
-        print('A', flush=True)
-
         if len(config.well_config) > 0:
-
-            print('B', flush=True)
-
             for roi in config.ROIs:
                 x = int(roi['x'])
                 y = int(roi['y'])
-
-                print('C', flush=True)
-
                 roi_lower_right = (x + config.roi_width, y + config.roi_height)
                 idx = config.target_names.index(roi['target'])      # find index in target_names matching current ROI targe
                 fill_color = hex_to_rgb(config.target_colors[idx])  # convert "#rrggbb" to [R,G,B]
-
-                print('D', flush=True)
-
                 # fill_color.append(64)                               # Add alpha channel for transparency
-                fill_color.append(float(roi_opacity)*255/100)           # Add alpha channel for transparency
-                draw.rectangle([(x,y), roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
-                
-                print('E', flush=True)
 
+                print(roi_opacity, flush=True)
+                print(float(roi_opacity), flush=True)
+                print(float(roi_opacity)*127/100, flush=True)
+
+                fill_color.append(float(roi_opacity)*127/100)           # Add alpha channel for transparency
+                draw.rectangle([(x,y), roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
                 font = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 9)         # Add well target text
                 text_position = (x + config.roi_width + 1, y)
                 draw.text(text_position, roi['target'],'#ffffff',font=font)
