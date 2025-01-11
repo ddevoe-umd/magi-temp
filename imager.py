@@ -48,6 +48,7 @@ def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
 
 def annotate_image(img, roi_opacity):      # Add timestamp and ROIs to image
     print('annotate_image() called', flush=True)
+    print(len(config.well_config), flush-True)
     sys.stdout.flush()
     try:
         img = img.convert('RGBA')   # convert captured image to support an alpha channel
