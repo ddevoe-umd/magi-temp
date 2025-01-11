@@ -111,8 +111,9 @@ class S(BaseHTTPRequestHandler):
             config.positives = card_data["positives"]
             config.target_names = data[2]
             config.target_colors = data[3]
+            roi_opacity = data[4]
             imager.setup_ROIs()  # set up the ROIs from assay card data
-            imager.get_image()   # capture a new image showing ROIs
+            imager.get_image(roi_opacity)   # capture a new image showing ROIs
             results = "config.py globals updated from card data"
             self.wfile.write(results.encode('utf-8'))
 

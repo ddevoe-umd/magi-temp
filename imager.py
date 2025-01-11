@@ -48,35 +48,31 @@ def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
 
 def annotate_image(img, roi_opacity):      # Add timestamp and ROIs to image
     print('annotate_image() called', flush=True)
-    print(len(config.well_config), flush=True)
     sys.stdout.flush()
-    try:
-        img = img.convert('RGBA')   # convert captured image to support an alpha channel
-        img_tmp = Image.new('RGBA', img.size, (255, 255, 255, 0))  # create new image with ROIs only
-        draw = ImageDraw.Draw(img_tmp)
-        # add timestamp:
-        font_timestamp = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 12) 
-        draw.text((10,10), config.card_filename, font=font_timestamp)  
-        draw.text((10,20), time.strftime("%Y%m%d_%Hh%Mm%Ss"), font=font_timestamp)
-        # add ROIs:
-        if len(config.well_config) > 0:
-            for roi in config.ROIs:
-                roi_lower_right = (roi['x'] + config.roi_width, roi['y'] + config.roi_height)
-                idx = config.target_names.index(roi['target'])      # find index in target_names matching current ROI targe
-                fill_color = hex_to_rgb(config.target_colors[idx])  # convert "#rrggbb" to [R,G,B]
-                # fill_color.append(64)                               # Add alpha channel for transparency
-                fill_color.append(float(roi_opacity)*255/100)           # Add alpha channel for transparency
-                draw.rectangle([(roi['x'],roi['y']), roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
-                font = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 9)         # Add well target text
-                text_position = (roi['x'] + config.roi_width + 1, roi['y'])
-                draw.text(text_position, roi['target'],'#ffffff',font=font)
-        img_new = Image.alpha_composite(img, img_tmp)  # composite captured & ROI images
-        img = None
-        img_tmp = None
-        return(img_new)
-    except Exception as e:
-        print('Exception in get_image():', flush=True)
-        print(f'{type(e)}: {e}', flush=True)
+    img = img.convert('RGBA')   # convert captured image to support an alpha channel
+    img_tmp = Image.new('RGBA', img.size, (255, 255, 255, 0))  # create new image with ROIs only
+    draw = ImageDraw.Draw(img_tmp)
+    # add timestamp:
+    font_timestamp = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 12) 
+    draw.text((10,10), config.card_filename, font=font_timestamp)  
+    draw.text((10,20), time.strftime("%Y%m%d_%Hh%Mm%Ss"), font=font_timestamp)
+    # add ROIs:
+    if len(config.well_config) > 0:
+        for roi in config.ROIs:
+            roi_lower_right = (roi['x'] + config.roi_width, roi['y'] + config.roi_height)
+            idx = config.target_names.index(roi['target'])      # find index in target_names matching current ROI targe
+            fill_color = hex_to_rgb(config.target_colors[idx])  # convert "#rrggbb" to [R,G,B]
+            # fill_color.append(64)                               # Add alpha channel for transparency
+            fill_color.append(float(roi_opacity)*255/100)           # Add alpha channel for transparency
+            draw.rectangle([(roi['x'],roi['y']), roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
+            font = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 9)         # Add well target text
+            text_position = (roi['x'] + config.roi_width + 1, roi['y'])
+            draw.text(text_position, roi['target'],'#ffffff',font=font)
+    img_new = Image.alpha_composite(img, img_tmp)  # composite captured & ROI images
+    img = None
+    img_tmp = None
+    return(img_new)
+
 
 
 def adjust_settings(exposure_time_ms, analogue_gain, color_gains):
