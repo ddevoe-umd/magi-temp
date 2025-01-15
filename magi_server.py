@@ -133,7 +133,7 @@ class S(BaseHTTPRequestHandler):
             results = imager.get_image_data()
             self.wfile.write(",".join([str(x) for x in results]).encode('utf-8'))
         if action == 'getTemperature':        # Return chip temperature
-            results = well_temp
+            results = str(well_temp)
             self.wfile.write(results.encode('utf-8'))
         elif action == 'end':            # Turn off PID loop and rename final data file
             results = imager.end_imaging()
