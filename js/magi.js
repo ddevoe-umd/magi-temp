@@ -214,9 +214,11 @@ window.onload = async function () {
 	disableAllElements();
   var period = document.getElementById('period-slider').value;  // Get sampling period
   document.getElementById('period-slider-text').innerHTML = `Period: ${period}s`;
-  // reset imager parameters in case they were previously changed without Pi restart:
-  await getFirstImage();    // Get initial image w/o ROIs
-  imagerValuesToServer({
+  // await getFirstImage();    // Get initial image
+  await ping()      // Make sure the server is ready
+  // reset imager parameters (in case they were changed without Pi restart)
+  // and get an image:
+  await imagerValuesToServer({
     'exposure-time': exposureTime,
     'analogue-gain': analogueGain,
     'red-gain': redGain,
@@ -227,6 +229,7 @@ window.onload = async function () {
   sliderKeySetup('cut-time-slider','cut-time-slider-text');    
   sliderKeySetup('threshold-slider','threshold-slider-text'); 
 };
+
 
 // Tell the server to do initial housekeeping on application startup:
 async function onLoad() {
@@ -242,6 +245,29 @@ async function onLoad() {
     }
 }
 
+
+// Keep pinging the server until it is ready:
+async function ping() {
+  let win = notification("Searching for MAGI server");
+  while (true) {
+    try {
+      await onLoad();  // Do initial Python server housekeeping
+      win.remove();    // close notification window
+      return;     
+    } catch (e) {  // timed out...
+      log(e)
+      if (e.message=="Load failed") {   // timeout error
+        log("onLoad() / getImage() attempt failed, retrying...");
+      }
+      else {   // some other kind of error, wait before retrying
+        log("onLoad() / getImage() attempt failed, retrying...");
+        await new Promise(resolve => setTimeout(resolve, 10000));
+      }
+    }
+  }
+}
+
+/* getFirstImage() NO LONGER USED
 
 // Wait for initial image from the server at code start to make sure
 // camera is ready before allowing an assay to be run:
@@ -265,7 +291,7 @@ async function getFirstImage() {
 	  }
 	}
 }
-
+*/
 
 // Apply the maximum width to all buttons:
 document.addEventListener("DOMContentLoaded", () => {
@@ -433,6 +459,7 @@ async function imagerValuesToServer(values) {
     results = await response.text();
     log(results, color=logOkColor, fontsize=7, bold=false, lines=false);
   }
+  getImage()  // update the image with new settings
 }
 
 // Open a modal dialog to allow user to change imager settings:
@@ -530,7 +557,7 @@ function updateCutTimeSlider() {
 function updateThresholdSlider() {
   const slider = document.getElementById('threshold-slider');
   var sliderText = document.getElementById('threshold-slider-text')
-  const html = `Threshold: ${slider.value}`;
+  const html = `I<sub class="sub75">cut</sub>: ${slider.value}`;
   sliderText.innerHTML = html;
 }
 
@@ -539,6 +566,11 @@ document.getElementById("cut-time-slider").addEventListener('input', updateCutTi
 
 // Event listener to update filter threshold from slider:
 document.getElementById("threshold-slider").addEventListener('input', updateThresholdSlider);
+
+// Event listener to update image when add-roi toggle activated:
+document.getElementById("add-rois").addEventListener('change', function () {
+    getImage(); // Update image when add-rois state changes
+});
 
 // Enable sliders to be adjusted using left/right arrow keys:
 function sliderKeySetup(sliderName, sliderTextName) {
@@ -650,11 +682,32 @@ async function getImageData() {
     		return(newData);
     	}
     } catch(e) {
-      log(`Error in getImageData: ${e}`, color=logErrorColor, fontsize=7, bold=false, lines=true
-);
+      log(`Error in getImageData: ${e}`, color=logErrorColor, fontsize=7, bold=false, lines=true);
     }
   }
 }
+
+async function getTemperature() {
+  while (true) {   // repeat indefinitely in case of timeout error in server
+    log(`getTemperature() called @ t = ${((Date.now()-startTime)/1000/60).toFixed(2)} min`);
+    try {
+      let message = 'getTemperature';
+      let data = '';
+      let response = await queryServer(JSON.stringify([message,data]));
+      if (response.ok) {
+        results = await response.text();
+        log(`Server response: T = ${results}`);
+        let results_array = results.split(",");
+        T = float(results);
+        return(T);
+      }
+    } catch(e) {
+      // pass
+    }
+  }
+}
+
+
 
 
 // Get an image, optionally with ROIs added (if checkbox selected):
@@ -866,9 +919,18 @@ async function reboot() {
 	  let data = '';
 		let response = await queryServer(JSON.stringify([message,data]));
 		if (response.ok) { } // Pi should reboot, so no response
-    // Wait a bit and try reloading after reboot:
-    await new Promise(resolve => setTimeout(resolve, 8000));
-		getFirstImage(); 
+    //Wait a bit and try reloading after reboot:
+    //await new Promise(resolve => setTimeout(resolve, 8000));
+		//getFirstImage(); 
+    // Wait 30 sec:
+    log("Retrying connection in 30 sec, please wait...", 
+      color=logInfoColor, fontsize=null, bold=false, lines=false
+    );
+    await new Promise(resolve => setTimeout(resolve, 30000));
+    // try reloading after reboot
+    await ping();
+    await getImage(); 
+    enableElements(["load","adjust","shutdown","reboot","getImage","getLog","clearLog"]);
 	}
 	else {
 		log("reboot cancelled", color=logInfoColor, fontsize=null, bold=false, lines=false
@@ -1163,7 +1225,7 @@ async function startAssay() {
   nullData = await startPID();    // Tell Python to start the PID controller
   toggleTitleBarAnimation();      // turn on title bar animation once PID starts
 
-  async function updateChart() {
+  async function updateAmplificationChart() {
     if (!isRunning) {
       log("Assay stopped", color=logInfoColor, fontsize=null, bold=false, lines=false);
       return;
@@ -1178,22 +1240,40 @@ async function startAssay() {
         y: newData[j]
       });
     }
-    temperature.push({
-        x: minutes,
-        y: newData[wellArray.length]   // T is last element in newData
-      });   
-    // Update the real-time amplification & temperature curves:
+    // Update the real-time amplification curve:
     amplificationChart.render();
-    temperatureChart.render();
     var sampleInterval = document.getElementById('period-slider').value * 1000;
-    setTimeout(updateChart, sampleInterval);   // Execute again in sampleInterval sec
+    setTimeout(updateAmplificationChart, sampleInterval);   // Execute again in sampleInterval sec
   }
-	updateChart();
   // ^^^ previously used setInterval() but had trouble with timing being
   //     throttled when browser minimized or not focused:
   //     var sampleInterval = document.getElementById('period-slider').value * 1000;
 	//     assayTimer = setInterval(function(){updateChart()}, sampleInterval);
+
+  async function updateTemperatureChart(T) {
+    if (!isRunning) {
+      log("Assay stopped", color=logInfoColor, fontsize=null, bold=false, lines=false);
+      return;
+    }
+    let now = Date.now();   
+    minutes = (now - startTime)/1000/60;
+    newData = await getTemperature();      // Get data from Python
+    // extend the temperature curve data:
+    temperature.push({
+        x: minutes,
+        y: float(T)
+      });   
+    // Update the real-time temperature curves:
+    temperatureChart.render();
+    var temperatureInterval = 100;   // time period for temperature chart updates (ms)
+    setTimeout(updateTemperatureChart, temperatureInterval);   // Execute again with given periodicity
+  }
+
+  updateAmplificationChart();
+  updateTemperatureChart();
 }
+
+
 
 
 

@@ -13,8 +13,6 @@ from io import BytesIO
 
 import config   # Cross-module global variables for all Python codes
 
-font_path = "~/magi/fonts"
-
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(config.IMAGER_LED_PIN, GPIO.OUT) 
 
@@ -25,7 +23,7 @@ res = (w,h)
 
 cam = Picamera2() 
 
-# Create a flat list of ROI dicts from 2D well_config array:
+# Create a flat list of ROI dicts from well_config 2D array:
 def setup_ROIs():
     print('setup_ROIs() called', flush=True)
     config.ROIs = []
@@ -54,9 +52,13 @@ def annotate_image(img, add_roi=False):      # Add timestamp and ROIs to image
         img_tmp = Image.new('RGBA', img.size, (255, 255, 255, 0))  # create new image with ROIs only
         draw = ImageDraw.Draw(img_tmp)
         # add timestamp:
-        font_timestamp = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 12) 
-        draw.text((10,10), config.card_filename, font=font_timestamp)  
-        draw.text((10,20), time.strftime("%Y%m%d_%Hh%Mm%Ss"), font=font_timestamp)
+        font = ImageFont.truetype(config.font_directory + "/" + "OpenSans.ttf", 12) 
+        draw.text((10,10), config.card_filename, font=font)  
+        month = time.strftime('%b')
+        day = time.strftime('%d')
+        year = time.strftime('%Y')
+        draw.text((10,20), f'{month} {day} {year} @ {time.strftime("%H:%M:%S")}', font=font)
+        # draw.text((10,20), time.strftime("%Y%m%d_%H:%M:%S"), font=font)
         # add ROIs:
         if add_roi:
             for roi in config.ROIs:
@@ -65,7 +67,7 @@ def annotate_image(img, add_roi=False):      # Add timestamp and ROIs to image
                 fill_color = hex_to_rgb(config.target_colors[idx])  # convert "#rrggbb" to [R,G,B]
                 fill_color.append(64)                               # Add alpha channel for transparency
                 draw.rectangle([(roi['x'],roi['y']), roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
-                font = ImageFont.truetype(font_path + "/" + "OpenSans.ttf", 9)         # Add well target text
+                font = ImageFont.truetype(config.font_directory + "/" + "OpenSans.ttf", 9)         # Add well target text
                 text_position = (roi['x'] + config.roi_width + 1, roi['y'])
                 draw.text(text_position, roi['target'],'#ffffff',font=font)
         img_new = Image.alpha_composite(img, img_tmp)  # composite captured & ROI images

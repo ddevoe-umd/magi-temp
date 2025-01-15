@@ -1,4 +1,6 @@
 
+import os
+
 # Cross-module Python global variables:
 
 well_config = []
@@ -10,8 +12,11 @@ roi_spacing_y = 0
 ROIs = []                # list of upper left corners for all ROIs
 
 # File information:
+magi_directory = os.environ['HOME'] + '/magi'
+font_directory = magi_directory + '/fonts'
 data_directory = '/path/to/ramdisk'
 card_filename = ""
+logfile = magi_directory + "/magi_server.log"
 
 target_names = []       # list of all unique target names
 target_colors = []      # list of colors for each unique target

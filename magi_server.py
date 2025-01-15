@@ -21,8 +21,7 @@ import config   # Cross-module global variables for all Python codes
 
 # import objgraph # temp module for tracking memory leaks
 
-sys.path.append('/home/pi/magi')  # Add application path to the Python search path
-logfile = "magi_server.log"       # Log file for stdio + stderr (see setup.sh)
+sys.path.append(config.magi_directory)  # Add application path to the Python search path
 
 # PID:
 GPIO.setmode(GPIO.BCM)
@@ -115,7 +114,9 @@ class S(BaseHTTPRequestHandler):
             imager.get_image(True)   # capture a new image showing ROIs
             results = "config.py globals updated from card data"
             self.wfile.write(results.encode('utf-8'))
-
+        if action == 'ping':           
+            results = 'server is ready'
+            self.wfile.write(results.encode('utf-8'))
         if action == 'onLoad':           # Housekeeping on starting application
             results = clear_globals()              # clear all global variables
             self.wfile.write(results.encode('utf-8'))
@@ -124,13 +125,15 @@ class S(BaseHTTPRequestHandler):
             start_pid()
             results = "PID thread started"
             self.wfile.write(results.encode('utf-8'))
-        if action == 'getImage':         # Get an image of the chip with colored ROIs
+        if action == 'getImage':         # Return an image of the chip with colored ROIs
             add_ROIs = data
             results = imager.get_image(add_ROIs)
             self.wfile.write(results.encode('utf-8'))
         if action == 'getImageData':          # Capture & analyze single camera image
             results = imager.get_image_data()
-            results.append(well_temp)
+            self.wfile.write(",".join([str(x) for x in results]).encode('utf-8'))
+        if action == 'getTemperature':        # Return chip temperature
+            results = well_temp
             self.wfile.write(",".join([str(x) for x in results]).encode('utf-8'))
         elif action == 'end':            # Turn off PID loop and rename final data file
             results = imager.end_imaging()
@@ -156,16 +159,16 @@ class S(BaseHTTPRequestHandler):
             reboot()
         elif action == 'getLog':         # Return the server log file contents
             # Create a blank file if it doesn't exist:
-            if not os.path.isfile(logfile):
-                with open(logfile, 'w') as f:
+            if not os.path.isfile(config.logfile):
+                with open(config.logfile, 'w') as f:
                     pass
-            with open(logfile, 'r') as f:
+            with open(config.logfile, 'r') as f:
                 results = f.read()
-            results += f"\n\nLog file size: {float(os.path.getsize(logfile))/1e6:.02f} MB"
+            results += f"\n\nLog file size: {float(os.path.getsize(config.logfile))/1e6:.02f} MB"
             self.wfile.write(json.dumps(results).encode('utf-8'))
         elif action == 'clearLog':          # Clear the server log file
-            open(logfile, 'w').close()
-            results = f'{logfile} cleared'
+            open(config.logfile, 'w').close()
+            results = f'{config.logfile} cleared'
             print(results, flush=True)
             self.wfile.write(json.dumps(results).encode('utf-8'))
 

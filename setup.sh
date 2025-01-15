@@ -10,7 +10,6 @@ echo "Synchronizing system time"
 echo "==========================================="
 sudo timedatectl
 
-
 echo "==========================================="
 echo "Setting up 25 MB RAM disk"
 echo "==========================================="
@@ -25,10 +24,12 @@ else
     echo "Line added successfully. Verify /etc/fstab before rebooting."
 fi
 
-
 echo "==========================================="
 echo "Adding crontab entry to run MAGI server at boot"
 echo "==========================================="
+# Delete any existing crontab entries
+crontab -r
+# Define new cron job
 CRON_SCHEDULE="@reboot"
 COMMAND="cd /home/pi/magi && python3 -u /home/pi/magi/magi_server.py >> /home/pi/magi/magi_server.log 2>&1"
 CRON_ENTRY="$CRON_SCHEDULE $COMMAND"
