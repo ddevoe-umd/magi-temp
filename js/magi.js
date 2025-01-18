@@ -422,7 +422,12 @@ async function imagerValuesToServer(values) {
   // Ask server to adjust camera settings:
   log("Adjusting imager settings...");
   let message = 'adjust';
-  let data = [exposureTime, analogueGain, redGain, blueGain];
+  let data = {
+    'exposure_time':exposureTime, 
+    'analogue_gain': analogueGain,
+    'red_gain': redGain,
+    'blue_gain': blueGain
+  };
   let response = await queryServer(JSON.stringify([message,data]));
   if (response.ok) {
     results = await response.text();
@@ -786,7 +791,12 @@ async function analyzeData() {
   let filterFactor = document.getElementById('filter-slider').value;
   let cutTime = document.getElementById('cut-time-slider').value;
   let threshold = document.getElementById('threshold-slider').value;
-	let data = [currentFileName, filterFactor, cutTime, threshold];  // package data for server
+	let data = {
+    'filename': currentFileName,
+    'filter_factor': filterFactor, 
+    'cut_time': cutTime,
+    'threshold': threshold
+  };
 	let response = await queryServer(JSON.stringify([message,data]));
 	if (response.ok) {
 		results = await response.text();

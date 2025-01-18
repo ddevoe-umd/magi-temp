@@ -91,7 +91,6 @@ class S(BaseHTTPRequestHandler):
         #print(f'{action}: {data}', flush=True)
         # objgraph.show_most_common_types()  # check memory use
         # sys.stdout.flush()
-
         if action == 'setupAssay':       # Update global variables from the assay card data
             config.card_filename = data['card_filename']
             card_data = data['card_dict']
@@ -104,11 +103,11 @@ class S(BaseHTTPRequestHandler):
             config.positives = card_data["positives"]
             config.target_names = data['target_names']
             config.target_colors = data['target_colors']
-            imager.setup_ROIs()  # set up the ROIs from assay card data
+            imager.setup_ROIs()      # set up the ROIs from assay card data
             imager.get_image(True)   # capture a new image showing ROIs
             results = "config.py globals updated from card data"
             self.wfile.write(results.encode('utf-8'))
-        if action == 'ping':           
+        if action == 'ping':                  # respond to server ping
             results = 'server is ready'
             self.wfile.write(results.encode('utf-8'))
         if action == 'onLoad':                # Housekeeping on starting application
@@ -136,16 +135,16 @@ class S(BaseHTTPRequestHandler):
             end_pid()
             self.wfile.write(results.encode('utf-8'))
         elif action == 'adjust':              # Turn off PID loop and rename final data file
-            exposure_time_ms = int(data[0])
-            analogue_gain = float(data[1])
-            colour_gains = (float(data[2]), float(data[3]))
+            exposure_time_ms = int(data['exposure_time'])
+            analogue_gain = float(data['analogue_gain'])
+            colour_gains = (float(data['red_gain']), float(data['blue_gain']))
             results = imager.adjust_settings(exposure_time_ms, analogue_gain, colour_gains)
             self.wfile.write(results.encode('utf-8'))
         elif action == 'analyze':             # Filter curves & extract TTP values
-            filename = data[0]
-            filter_factor = data[1]
-            cut_time = data[2]
-            threshold = data[3]
+            filename = data['filename']
+            filter_factor = data['filter_factor']
+            cut_time = data['cut_time']
+            threshold = data['threshold']
             results = imager.analyze_data(filename, filter_factor, cut_time, threshold)
             self.wfile.write(json.dumps(results).encode('utf-8'))
             #self.wfile.write(results.encode('utf-8'))
