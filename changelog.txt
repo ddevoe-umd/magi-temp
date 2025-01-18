@@ -1,0 +1,7 @@
+v1.11:
+* fully stable
+
+v1.12:
+* added separate timings for image & temperature data capture & display
+
+

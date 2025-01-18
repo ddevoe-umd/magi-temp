@@ -1,0 +1,31 @@
+{
+  "well_config": 
+    [ 
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "POS"],
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "POS"],
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "POS"],
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "POS"],
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "NEG"],
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "NEG"],
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "NEG"],
+      ["mecA", "nuc", "femB", "ermB", "ermF", "ermT", "ermX", "tetA/C", "sul1", "sul2", "NEG"]
+    ],
+  "roi_upper_left": [150,125],
+  "roi_width": 12,
+  "roi_height": 18,
+  "roi_spacing_x": 28,
+  "roi_spacing_y": 32,
+  "positives": 
+  { "MRSA":
+    [
+      "MecA",
+      "Nuc",
+      "FemB"
+    ],
+    "MSSA":
+    [
+      "Nuc",
+      "FemB"
+    ]
+  }
+}

@@ -5,7 +5,7 @@ import csv
 import json
 import os
 import sys
-from filter_curves import filter
+import filter_curves
 import RPi.GPIO as GPIO
 from PIL import Image, ImageDraw, ImageFont
 import base64
@@ -170,35 +170,36 @@ def end_imaging():
     # move temp data contents to time-stamped file:
     output_filename = time.strftime("%Y%m%d_%Hh%Mm%Ss")
     os.rename(config.data_directory + '/temp_data.csv', config.data_directory + '/' + output_filename + '.csv')
-    # clear_temp_file()  # This now happens in magi_server.py
     print(f'end_imaging() called, output_filename={output_filename}', flush=True)
     sys.stdout.flush()
     return(output_filename)
 
 def analyze_data(filename, filter_factor, cut_time, threshold):
-    # filter() returns format: [ttp, y_filtered_dict]
+    # filter() returns: {'ttp': ttp, 'y_filt': y_filtered}
     # where ttp is a list of TTP values for each well, and
-    # y_filtered_dict is a list of data with format:
+    # y_filtered is a list of data with format:
     #   [ [{x: t1, y: val1}, {x: t2, y: val2}, ...]  <- well 1
     #     [{x: t1, y: val1}, {x: t2, y: val2}, ...]  <- well 2
     #      ... ]                                     <- etc
-    results = filter(config.data_directory + '/' + filename + '.csv', float(filter_factor), float(cut_time), int(threshold)) 
-
+    results = filter_curves.filter(
+        config.data_directory + '/' + filename + '.csv', 
+        float(filter_factor), 
+        float(cut_time), 
+        int(threshold) ) 
     # Save filtered data to csv file:
-    data = results[1]
-    time_in_min = [entry['x'] for entry in data[0]]  # time values (same for all wells)
+    y_filt = results['y_filt']
+    time_min = [entry['x'] for entry in y_filt[0]]  # time value, 1st well (same for all wells)
     columns = []
-    for well_data in data:
-        columns.append([entry["y"] for entry in well_data])
+    for well in y_filt:
+        columns.append([entry['y'] for entry in well])
     with open(config.data_directory + '/' + filename + '_filt.csv', 'a') as f:
         #fieldnames = ["time (min)", "fluorescence"]
         writer = csv.writer(f)
-        headers = ["time (min)"] + [f"well {i}" for i in range(len(columns))]
+        headers = ['time (min)'] + [f'well {i}' for i in range(len(columns))]
         writer.writerow(headers)
-        for i, t in enumerate(time_in_min):
+        for i, t in enumerate(time_min):
             row = [t] + [values[i] for values in columns]
             writer.writerow(row)
-
-    # Return original list of dicts:
+    # Return original dictionary:
     return(results)
 

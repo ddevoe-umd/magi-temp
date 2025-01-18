@@ -24,7 +24,7 @@ def get_ttp(t,y):
     return ttp
 
 def filter(filename, filter_factor=10.0, cut_time=0.0, threshold=0):
-    y_filtered_dict = []
+    y_filtered = []
     ttp = []
     with open(filename) as f:
         df = pd.read_csv(f, header=None)
@@ -85,12 +85,11 @@ def filter(filename, filter_factor=10.0, cut_time=0.0, threshold=0):
                 yf_norm = [0 for _ in yf_norm]
 
             yf_dict = [{'x':t[i], 'y':yf_norm[i]} for i in range(len(t))]
-            y_filtered_dict.append(yf_dict)
+            y_filtered.append(yf_dict)
 
             ttp.append(get_ttp(t,yf_norm))
-
-    all_data = [ttp, y_filtered_dict]
-    return(all_data)
+            
+    return({'ttp': ttp, 'y_filt': y_filtered})
 
 
 

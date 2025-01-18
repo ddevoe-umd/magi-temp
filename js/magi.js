@@ -7,7 +7,7 @@
 // All possible targets with chart display properties:
 /*
 const targets = {          
-  "mecA": ["#4C4CEB", "solid"],   
+  "mecA": ["#4C4CEB", "solqid"],   
   "femB": ["#5ED649", "solid"],
   "ermB": ["#FFC0CB", "solid"],
   "ermF": ["#33CCFF", "solid"],
@@ -77,17 +77,22 @@ document.addEventListener('keydown', function(event) {
 });
 
 // Query user before closing window or quitting application:
-document.addEventListener('keydown', (event) => {
+document.addEventListener('keydown', async function(event) {
     const isCtrlOrCmd = event.ctrlKey || event.metaKey; // MetaKey is Mac Command key
     const isCloseKey = event.key === 'w' || event.key === 'q';
     if (isCtrlOrCmd && isCloseKey) {
-        event.preventDefault(); // Prevent default behavior
+      event.preventDefault(); // Prevent default behavior
+      if (isRunning) {
+        await endAssay();
+      }
+      if (!isRunning) {
         const confirmMessage = 'Are you sure you want to quit?';
         if (confirm(confirmMessage)) {
             if (isCloseKey) {
-                window.close();
+              window.close();
             }
         }
+      }
     }
 });
 
@@ -267,31 +272,6 @@ async function ping() {
   }
 }
 
-/* getFirstImage() NO LONGER USED
-
-// Wait for initial image from the server at code start to make sure
-// camera is ready before allowing an assay to be run:
-async function getFirstImage() {
-  let win = notification("Searching for MAGI server");
-  while (true) {
-  	try {
-      await onLoad();  // Do initial Python server housekeeping
-      const awaitResult = await getImage();
-	  	win.remove();    // close notification window
-	  	return;     
-	  } catch (e) {  // timed out...
-      log(e)
-      if (e.message=="Load failed") {   // timeout error
-      	log("onLoad() / getImage() attempt failed, retrying...");
-      }
-      else {   // some other kind of error, wait before retrying
-        log("onLoad() / getImage() attempt failed, retrying...");
-        await new Promise(resolve => setTimeout(resolve, 10000));
-      }
-	  }
-	}
-}
-*/
 
 // Apply the maximum width to all buttons:
 document.addEventListener("DOMContentLoaded", () => {
@@ -464,8 +444,10 @@ async function imagerValuesToServer(values) {
 
 // Open a modal dialog to allow user to change imager settings:
 async function adjustImager() {
-  const modalWindow = window.open('', 'ModalWindow', 'width=300,height=170');
-  // Check if window is already open:
+  var modalWindow = window.open('', 'ModalWindow', 'width=300,height=170');
+  // Check if window was already open, and if so bring into focus -- unfortunately
+  // focus doesn't work correctly in Chrome/Chromium so Electron app won't be
+  // able to regain focus. There are kludgy work-arounds but not worth implementing.
   if (modalWindow.document.getElementById('exposure-time')) {
     modalWindow.focus();
     return;   
@@ -474,6 +456,7 @@ async function adjustImager() {
     <!DOCTYPE html>
     <html>
     <head>
+      <title>Imager Settings</title>
       <link rel="stylesheet" type="text/css" href="css/slider.css">
       <link rel="stylesheet" href="css/style.css">
       <link rel="stylesheet" href="css/buttons.css">
@@ -634,17 +617,17 @@ async function startPID() {
 
 
 async function endAssay() {
-	log("endAssay() called");
-	await wakeLock.release();      // Release the wake lock when assay ends
-	log("wake lock released");
+  log("endAssay() called");
 	let response = confirm(`End current assay for ${cardFilename}?`);
 	if (response) {
-		disableElements(["stop"]);
+    await wakeLock.release();      // Release the wake lock when assay ends
+    log("wake lock released");
+  	disableElements(["stop"]);
     isRunning = false;             // flip the flag to stop the assay
     toggleTitleBarAnimation();     // turn off title bar animation
 		// if (assayTimer) clearInterval(assayTimer);
 	  enableElements(["load","start","period-slider"]);
-		let message = 'end';
+		let message = 'endAssay';
 	  let data = '';
 		let response = await queryServer(JSON.stringify([message,data]));
     results = await response.text();
@@ -688,22 +671,17 @@ async function getImageData() {
 }
 
 async function getTemperature() {
-  while (true) {   // repeat indefinitely in case of timeout error in server
-    log(`getTemperature() called @ t = ${((Date.now()-startTime)/1000/60).toFixed(2)} min`);
-    try {
-      let message = 'getTemperature';
-      let data = '';
-      let response = await queryServer(JSON.stringify([message,data]));
-      if (response.ok) {
-        results = await response.text();
-        log(`Server response: T = ${results}`);
-        let results_array = results.split(",");
-        T = float(results);
-        return(T);
-      }
-    } catch(e) {
-      // pass
+  try {
+    let message = 'getTemperature';
+    let data = '';
+    let response = await queryServer(JSON.stringify([message,data]));
+    if (response.ok) {
+      results = await response.text();
+      T = parseFloat(results);
+      return(T);
     }
+  } catch(e) {
+    log(`error in getTemperature(): ${e}`)
   }
 }
 
@@ -823,20 +801,26 @@ async function analyzeData() {
 	let response = await queryServer(JSON.stringify([message,data]));
 	if (response.ok) {
 		results = await response.text();
+    // results format: {'ttp': ttp, 'y_filt': y_filtered}
+    // where ttp is a list of TTP values for each well, and
+    // y_filtered is a list of data with format:
+    //   [ [{x: t1, y: val1}, {x: t2, y: val2}, ...]  <- well 1
+    //    [{x: t1, y: val1}, {x: t2, y: val2}, ...]  <- well 2
+    //     ... ]                                     <- etc
 		log("Server response: ");
 		if (results) { 
-		  log(`JSON data length = ${results.length}`);
+      let filteredData = JSON.parse(results);
+      ttpData = filteredData['ttp'];  // ttpData is global
+      let xy = filteredData['y_filt'];
+		  log(`Filter data length = ${xy.length}`);
 		  // Check for NaN in filter results, which seems to happen when the
 		  // raw image data contains too many zero values:
-		  if (results.includes("NaN")) {
+		  if (xy.includes("NaN")) {
 		  	log("NaN in filter data (check if too many zero brightness values)",
           color=logErrorColor, fontSize=null, bold=false, lines=false
         );
 		  }
 		  else {
-				let data = JSON.parse(results);
-		    ttpData = data[0];  // ttpData is global
-		    let xy = data[1];
 		    displayFilteredData(xy);
 				displayTTPGrouped();
 			  enableElements(["savefiltered","toggleTTP","saveTTP"]);
@@ -1227,7 +1211,7 @@ async function startAssay() {
 
   async function updateAmplificationChart() {
     if (!isRunning) {
-      log("Assay stopped", color=logInfoColor, fontsize=null, bold=false, lines=false);
+      //log("Assay stopped", color=logInfoColor, fontsize=null, bold=false, lines=false);
       return;
     }
     let now = Date.now();   
@@ -1243,37 +1227,31 @@ async function startAssay() {
     // Update the real-time amplification curve:
     amplificationChart.render();
     var sampleInterval = document.getElementById('period-slider').value * 1000;
-    setTimeout(updateAmplificationChart, sampleInterval);   // Execute again in sampleInterval sec
+    setTimeout(updateAmplificationChart, sampleInterval);   // Execute again with given periodicity
   }
-  // ^^^ previously used setInterval() but had trouble with timing being
-  //     throttled when browser minimized or not focused:
-  //     var sampleInterval = document.getElementById('period-slider').value * 1000;
-	//     assayTimer = setInterval(function(){updateChart()}, sampleInterval);
 
-  async function updateTemperatureChart(T) {
+  async function updateTemperatureChart() {
     if (!isRunning) {
       log("Assay stopped", color=logInfoColor, fontsize=null, bold=false, lines=false);
       return;
     }
     let now = Date.now();   
     minutes = (now - startTime)/1000/60;
-    newData = await getTemperature();      // Get data from Python
+    T = await getTemperature();      // Get data from Python
     // extend the temperature curve data:
     temperature.push({
-        x: minutes,
-        y: float(T)
-      });   
+      x: minutes,
+      y: T
+    });   
     // Update the real-time temperature curves:
     temperatureChart.render();
-    var temperatureInterval = 100;   // time period for temperature chart updates (ms)
+    var temperatureInterval = 500;   // time period for temperature chart updates (ms)
     setTimeout(updateTemperatureChart, temperatureInterval);   // Execute again with given periodicity
   }
 
   updateAmplificationChart();
   updateTemperatureChart();
 }
-
-
 
 
 
