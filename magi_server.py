@@ -93,8 +93,8 @@ class S(BaseHTTPRequestHandler):
         # sys.stdout.flush()
 
         if action == 'setupAssay':       # Update global variables from the assay card data
-            config.card_filename = data[0]
-            card_data = data[1]
+            config.card_filename = data['card_filename']
+            card_data = data['card_dict']
             config.well_config = card_data["well_config"]
             config.roi_upper_left = tuple(int(val) for val in card_data["roi_upper_left"])
             config.roi_width = int(card_data["roi_width"])
@@ -102,8 +102,8 @@ class S(BaseHTTPRequestHandler):
             config.roi_spacing_x = int(card_data["roi_spacing_x"])
             config.roi_spacing_y = int(card_data["roi_spacing_y"])
             config.positives = card_data["positives"]
-            config.target_names = data[2]
-            config.target_colors = data[3]
+            config.target_names = data['target_names']
+            config.target_colors = data['target_colors']
             imager.setup_ROIs()  # set up the ROIs from assay card data
             imager.get_image(True)   # capture a new image showing ROIs
             results = "config.py globals updated from card data"
@@ -123,7 +123,7 @@ class S(BaseHTTPRequestHandler):
             add_ROIs = data
             results = imager.get_image(add_ROIs)
             self.wfile.write(results.encode('utf-8'))
-        if action == 'getImageData':          # Capture image & analyze ROIs
+        if action == 'getImageData':          # Capture image & ROI values
             results = imager.get_image_data()
             self.wfile.write(",".join([str(x) for x in results]).encode('utf-8'))
         if action == 'getTemperature':        # Return chip temperature

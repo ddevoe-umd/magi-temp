@@ -4,32 +4,13 @@
 
 // Globals:
 
-// All possible targets with chart display properties:
-/*
-const targets = {          
-  "mecA": ["#4C4CEB", "solqid"],   
-  "femB": ["#5ED649", "solid"],
-  "ermB": ["#FFC0CB", "solid"],
-  "ermF": ["#33CCFF", "solid"],
-  "ermT": ["#FF8C00", "solid"],
-  "ermX": ["#FFFF00", "solid"],
-  "tetA/C": ["#FF0000 ", "solid"],
-  "sul1": ["#000080", "solid"],
-  "sul2": ["#C0C0C0", "solid"],
-  "nuc": ["#DD4444", "solid"],
-  "POS": ["#222222", "dash"],
-  "NEG": ["#555555", "dot"]
-};
-*/
-
-var targetNames = [];      // Unique gene target names 
-var targetColors = [];     // Plot colors for each element in targetNames
-
-var cardFilename;     // Assay card file name selected by user
-
-var wellConfig = [];  // Well array configuration. Unlike the Python well_config
-                      // global, which is a 2D array, wellConfig is converted to
-                      // a 1D array starting at upper left to simplify canvasJS plotting
+var cardFilename;       // Assay card file name selected by user
+var positives = {};     // positive hit criteria from assay card
+var wellConfig = [];    // Well array configuration. Unlike the Python well_config
+                        // global, which is a 2D array, wellConfig is converted to
+                        // a 1D array to simplify canvasJS plotting
+var targetNames = [];   // Unique gene target names (extract from assay card)
+var targetColors = [];  // Plot colors for each element in targetNames
 
 var isRunning = false;  // flag to track if assay is currently running
 
@@ -51,7 +32,7 @@ const logErrorColor = "#FF0000";
 const logInfoColor = "#FFDE21";
 const logOkColor = "#00FF00";
 
-var ttpData = [];             // array to hold TTP results
+var ttpValues = [];             // array to hold TTP results
 var filteredChart;            // chart to display filtered curves
 var ttpChartAll;              // chart to display all TTP values
 var ttpChartGrouped;          // chart to display avg & stdev TTP values
@@ -253,11 +234,11 @@ async function onLoad() {
 
 // Keep pinging the server until it is ready:
 async function ping() {
-  let win = notification("Searching for MAGI server");
+  let notificationWindow = notification("Searching for MAGI server");
   while (true) {
     try {
       await onLoad();  // Do initial Python server housekeeping
-      win.remove();    // close notification window
+      notificationWindow.remove(); 
       return;     
     } catch (e) {  // timed out...
       log(e)
@@ -356,14 +337,17 @@ document.getElementById('hidden-card-file-input').addEventListener('change', asy
     const reader = new FileReader();
     reader.onload = async function (e) {
       try {
-        const cardJson = JSON.parse(e.target.result);
+        const cardDict = JSON.parse(e.target.result);   // All card data as a dictionary
         
         // Convert 2D array format of well_config from assay card to a
         // 1D array for ease of plotting with CanvasJS:
         wellConfig = [];
-        for (row of cardJson["well_config"]) for (ele of row) wellConfig.push(ele);
+        for (row of cardDict["well_config"]) for (ele of row) wellConfig.push(ele);
 
-        // Extract an array with all unique targets:
+        // Extract positive hits:
+        positives = cardDict["positives"]
+
+        // Extract unique target list:
         const uniqueTargetSet = new Set(wellConfig);
         targetNames = Array.from(uniqueTargetSet);
         // Set up plot colors for unique targets:
@@ -371,7 +355,12 @@ document.getElementById('hidden-card-file-input').addEventListener('change', asy
         
         // Contact the server to set up remote assay info (ROIs, well config etc.):
         let message = "setupAssay";
-        let data = [cardFilename, cardJson, targetNames, targetColors, false];
+        let data = {
+          'card_filename':cardFilename,
+          'card_dict':cardDict,
+          'target_names': targetNames, 
+          'target_colors': targetColors
+        };
         console.log(JSON.stringify(data));
         let response = await queryServer(JSON.stringify([message,data]));
         if (response.ok) {
@@ -792,7 +781,7 @@ img.addEventListener('click', () => {
 // Filter the raw data and get TTP values:
 async function analyzeData() {
 	log("analyzeData() called");
-	let win = notification("Filtering data and extracting TTP values");
+	let notificationWindow = notification("Filtering data and extracting TTP values");
   let message = 'analyze';
   let filterFactor = document.getElementById('filter-slider').value;
   let cutTime = document.getElementById('cut-time-slider').value;
@@ -809,18 +798,18 @@ async function analyzeData() {
     //     ... ]                                     <- etc
 		log("Server response: ");
 		if (results) { 
-      let filteredData = JSON.parse(results);
-      ttpData = filteredData['ttp'];  // ttpData is global
-      let xy = filteredData['y_filt'];
-		  log(`Filter data length = ${xy.length}`);
 		  // Check for NaN in filter results, which seems to happen when the
 		  // raw image data contains too many zero values:
-		  if (xy.includes("NaN")) {
+		  if (results.includes("NaN")) {
 		  	log("NaN in filter data (check if too many zero brightness values)",
           color=logErrorColor, fontSize=null, bold=false, lines=false
         );
 		  }
 		  else {
+        let filteredData = JSON.parse(results);
+        ttpValues = filteredData['ttp'];   // ttpValues is global (for plotting)
+        let xy = filteredData['y_filt'];
+        log(`Filter data length = ${xy.length}`);
 		    displayFilteredData(xy);
 				displayTTPGrouped();
 			  enableElements(["savefiltered","toggleTTP","saveTTP"]);
@@ -835,8 +824,17 @@ async function analyzeData() {
       );
 		}
 	}
-  win.remove();    // Remove the notification window
+  notificationWindow.remove();    // Remove the notification window
+  displayPosNegResults();         // evaluate TTPs against positive criteria from assay card
 }
+
+
+
+// evaluate TTPs against positive criteria from assay card:
+function displayPosNegResults() {
+   // pass
+}
+
 
 
 // Download files with raw and filtered amplification data. 
@@ -1277,7 +1275,7 @@ function displayTTP() {
 		for (let i=0; i<wellConfig.length; i++) {
 			if (wellConfig[i] == targetNames[idx]) {
 				ttpBars.push({
-					y: ttpData[i],
+					y: ttpValues[i],
 					label: targetNames[idx],
 					color: targetColors[idx]
 				});
@@ -1343,7 +1341,7 @@ function displayTTPGrouped() {
   	let sum = 0;
 		for (let i=0; i<wellConfig.length; i++) {
 			if (wellConfig[i] == targetNames[idx]) {
-				vals.push(ttpData[i]);
+				vals.push(ttpValues[i]);
 			}
 		}
 		mean = avgArray(vals);
@@ -1457,7 +1455,7 @@ function saveTTP() {
 	// Package TTP results into an array:
 	let arr = [];
 	for (let i=0; i<wellConfig.length; i++) {
-		arr.push([wellConfig[i], ttpData[i]]);
+		arr.push([wellConfig[i], ttpValues[i]]);
 	}
 	let filename = currentFileName+"_ttp.csv";
 	saveCSV(filename, arr);
