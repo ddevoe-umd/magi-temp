@@ -48,7 +48,7 @@ echo "==========================================="
 sudo apt-get update
 
 echo "==========================================="
-echo "apt-get upgrade (may take >30 min)"
+echo "apt-get upgrade (may take 30+ min)"
 echo "==========================================="
 sudo apt-get upgrade
 
@@ -63,12 +63,17 @@ echo "==========================================="
 sudo apt-get --yes install python3-picamera2
 
 echo "==========================================="
+echo "matplotlib"
+echo "==========================================="
+sudo apt-get --yes install python3-matplotlib
+
+echo "==========================================="
 echo "numpy"
 echo "==========================================="
 sudo apt-get --yes install python3-numpy
 
 echo "==========================================="
-echo "sudo scipy"
+echo "scipy"
 echo "==========================================="
 sudo apt-get --yes install python3-scipy
 

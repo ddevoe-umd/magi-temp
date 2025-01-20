@@ -1244,8 +1244,8 @@ async function startAssay() {
       return;
     }
     let now = Date.now();   
-    minutes = (now - startTime)/1000/60;
-    T = await getTemperature();      // Get data from Python
+    let minutes = (now - startTime)/1000/60;
+    let T = await getTemperature();      // Get data from Python
     // extend the temperature curve data:
     temperature.push({
       x: minutes,

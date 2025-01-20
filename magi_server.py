@@ -26,8 +26,8 @@ GPIO.setup(config.PWM_PIN, GPIO.OUT)
 pwm = GPIO.PWM(config.PWM_PIN,490)
 pid = PID(Kp=12.635, Ki=1.0063, Kd=0, setpoint=0)     # Can add sample_time, output_limits, etc.
 pid.output_limits = (0,100)
-b_bias = 0.82                   # value for linear interpolation of temperature
-well_temp = 0                   # current well temperature
+b_bias = 0.82            # value for linear interpolation of temperature
+well_temp = 0            # current well temperature
 set_temp = 60
 
 # Pre-Filter:
@@ -127,6 +127,7 @@ class S(BaseHTTPRequestHandler):
             self.wfile.write(",".join([str(x) for x in results]).encode('utf-8'))
         if action == 'getTemperature':        # Return chip temperature
             results = str(well_temp)
+            well_temps = []  # reset the list
             self.wfile.write(results.encode('utf-8'))
         elif action == 'endAssay':                 # Turn off PID loop and rename final data file
             results = imager.end_imaging()
@@ -213,7 +214,7 @@ def run_pid(stop_event):
     global well_temp
     global const, Tb, Tt
     rd = 50*1e6       # PID update period (ns)
-    ptrd = time.time_ns()
+    ptrd = time.time_ns()   # time stamp for PID
     start_time = time.time_ns()
     while not stop_event.is_set():
         try:

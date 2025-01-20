@@ -1,7 +1,8 @@
-v1.11:
+v1.0.1:
 * fully stable
 
-v1.12:
+v1.0.2:
 * added separate timings for image & temperature data capture & display
 
-
+v.1.0.3:
+* changed data transfer from magi.js to magi_server.py to use dictionaries instead of lists

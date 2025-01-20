@@ -7,7 +7,7 @@ npm init -y
 npm install electron --save-dev
 
 # Edit package.json fields:
-npm version "1.0.2"  # version for "about" box
+npm version "1.0.3"  # version for "about" box
 
 # Edit the name field in package.json:
 file="package.json"

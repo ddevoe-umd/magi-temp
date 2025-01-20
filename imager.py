@@ -11,6 +11,8 @@ from PIL import Image, ImageDraw, ImageFont
 import base64
 from io import BytesIO
 
+import multiprocessing
+
 import config   # Cross-module global variables for all Python codes
 
 GPIO.setmode(GPIO.BCM)
@@ -121,13 +123,13 @@ def roi_avg(image, roi):   # Return average pixel values in ROI
     b = int(100*b/pixels);
     return((r,g,b))
 
-def get_image_data():    # Extract fluorescence measurements from ROIs in image
+def get_image_data_timeout():    # Extract fluorescence measurements from ROIs in image
     print('get_image_data() called', flush=True)
     sys.stdout.flush()
     try:
         cam.start()
-        GPIO.output(config.IMAGER_LED_PIN, GPIO.HIGH)     # Turn on LED
-        image = cam.capture_image("main")   # capture as PIL image
+        GPIO.output(config.IMAGER_LED_PIN, GPIO.HIGH)    # Turn on LED
+        image = cam.capture_image("main")                # capture as PIL image
         cam.stop()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.LOW)     # Turn off LED
         # Get average pixel value for each ROI:
@@ -144,6 +146,16 @@ def get_image_data():    # Extract fluorescence measurements from ROIs in image
     except Exception as e:
         print(f'Exception in get_image_data(): {e}', flush=True)
         return(f'Exception in get_image_data(): {e}')
+
+def get_image_data():    
+    p = multiprocessing.Process(target=get_image_data_timeout)
+    p.start()
+    p.join(10)   # Wait for 10 seconds or until process finishes
+    if p.is_alive():
+        cam = Picamera2() 
+        setup_camera()
+        p.join()
+
 
 # Return a PIL image with time stamp (add colored ROI boxes if add_ROIs true):
 def get_image(add_ROIs):
