@@ -63,8 +63,8 @@ def annotate_image(img, add_roi=False):      # Add timestamp and ROIs to image
         if add_roi:
             for roi in config.ROIs:
                 roi_lower_right = (roi['x'] + config.roi_width, roi['y'] + config.roi_height)
-                idx = config.target_names.index(roi['target'])      # find index in target_names matching current ROI targe
-                fill_color = hex_to_rgb(config.target_colors[idx])  # convert "#rrggbb" to [R,G,B]
+                idx = config.gene_names.index(roi['target'])      # find index in gene_names matching current ROI targe
+                fill_color = hex_to_rgb(config.gene_colors[idx])  # convert "#rrggbb" to [R,G,B]
                 fill_color.append(64)                               # Add alpha channel for transparency
                 draw.rectangle([(roi['x'],roi['y']), roi_lower_right], outline='#ffffff', fill=tuple(fill_color))   # Draw ROI
                 font = ImageFont.truetype(config.font_directory + "/" + "OpenSans.ttf", 9)         # Add well target text
