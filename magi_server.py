@@ -101,8 +101,8 @@ class S(BaseHTTPRequestHandler):
             config.roi_spacing_x = int(card_data["roi_spacing_x"])
             config.roi_spacing_y = int(card_data["roi_spacing_y"])
             config.positives = card_data["positives"]
-            config.target_names = data['target_names']
-            config.target_colors = data['target_colors']
+            config.gene_names = data['gene_names']
+            config.gene_colors = data['gene_colors']
             imager.setup_ROIs()      # set up the ROIs from assay card data
             imager.get_image(True)   # capture a new image showing ROIs
             results = "config.py globals updated from card data"
@@ -185,8 +185,8 @@ def clear_globals():
     config.roi_spacing_y = 0        
     config.ROIs = []                # list of upper left corners for all ROIs
     config.card_filename = ''
-    config.target_names = []
-    config.target_colors = []
+    config.gene_names = []
+    config.gene_colors = []
     return('globals cleared')
 
 

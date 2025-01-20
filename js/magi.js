@@ -5,12 +5,12 @@
 // Globals:
 
 var cardFilename;       // Assay card file name selected by user
-var positives = {};     // positive hit criteria from assay card
+var positives = {};     // dictionary of positive hit criteria from assay card
 var wellConfig = [];    // Well array configuration. Unlike the Python well_config
                         // global, which is a 2D array, wellConfig is converted to
                         // a 1D array to simplify canvasJS plotting
-var targetNames = [];   // Unique gene target names (extract from assay card)
-var targetColors = [];  // Plot colors for each element in targetNames
+var geneNames = [];   // Unique gene target names (extract from assay card)
+var geneColors = [];  // Plot colors for each element in geneNames
 
 var isRunning = false;  // flag to track if assay is currently running
 
@@ -32,7 +32,10 @@ const logErrorColor = "#FF0000";
 const logInfoColor = "#FFDE21";
 const logOkColor = "#00FF00";
 
-var ttpValues = [];             // array to hold TTP results
+var ttpValues = [];           // array to hold TTP results for each well
+var rsdTTP = {}               // dictionary of gene:RSD pairs for each gene set
+var meanTTP = {}              // dictionary of gene:mean pairs for each gene set
+
 var filteredChart;            // chart to display filtered curves
 var ttpChartAll;              // chart to display all TTP values
 var ttpChartGrouped;          // chart to display avg & stdev TTP values
@@ -344,22 +347,22 @@ document.getElementById('hidden-card-file-input').addEventListener('change', asy
         wellConfig = [];
         for (row of cardDict["well_config"]) for (ele of row) wellConfig.push(ele);
 
-        // Extract positive hits:
+        // Extract positive hit dictionary:
         positives = cardDict["positives"]
 
-        // Extract unique target list:
+        // Extract unique gene target list:
         const uniqueTargetSet = new Set(wellConfig);
-        targetNames = Array.from(uniqueTargetSet);
-        // Set up plot colors for unique targets:
-        targetColors = generatePlotColors(targetNames.length);
+        geneNames = Array.from(uniqueTargetSet);
+        // Set up plot colors for unique gene targets:
+        geneColors = generatePlotColors(geneNames.length);
         
         // Contact the server to set up remote assay info (ROIs, well config etc.):
         let message = "setupAssay";
         let data = {
           'card_filename':cardFilename,
           'card_dict':cardDict,
-          'target_names': targetNames, 
-          'target_colors': targetColors
+          'gene_names': geneNames, 
+          'gene_colors': geneColors
         };
         console.log(JSON.stringify(data));
         let response = await queryServer(JSON.stringify([message,data]));
@@ -783,6 +786,49 @@ img.addEventListener('click', () => {
 });
 
 
+// Evaluate & report positive hits:
+function reportPositives() {
+  log("reportPositives() called");
+  let targets = Object.keys(positives);
+  let hits = []   // empty array to hold positive hits based on TTP values
+  targets.foreach((target) => {
+    // pull out list of genes corresponding to a positive hit for the given target organism:
+    let positiveGenes_ = positives[target];
+    let positiveGenes = Object.keys(positiveGenes_);
+    positiveGenes.foreach((gene) => {
+      // evaluate TTP mean & std dev
+      if(meanTTP[gene] > 5 && meanTTP[gene] < 50 && rsdTTP[gene] < 0.3) {
+        hits.append(target);
+      }
+    });
+  });
+  log(hits.toString());
+}
+
+/*
+
+  { "MRSA":
+    {
+      "mecA": true,
+      "nuc": true,
+      "femB": true
+      "POS": true
+      "NEG": false
+    },
+    "MSSA":
+    {
+      "mecA": false,
+      "nuc": true,
+      "femB": true
+      "POS": true
+      "NEG": false
+    }
+  }
+}
+
+*/
+
+
 // Filter the raw data and get TTP values:
 async function analyzeData() {
 	log("analyzeData() called");
@@ -827,6 +873,7 @@ async function analyzeData() {
           color=logOkColor, fontSize=null, bold=false, lines=false
         );
 			}
+      reportPositives();
 		}
 		else { 
 			log("No filter data returned: check # data points (>21 required)",
@@ -1000,18 +1047,18 @@ function setupAmplificationChart(targetContainer) {
   //      ... ]                                     <- etc
   let wellArray = Array.from({ length: wellConfig.length }, () => []);
 	let plotInfo = [];
-	let g = 1;   // group number (for grouping target sets in charts)
-  for (let idx=0; idx<targetNames.length; idx++) {
+	let g = 1;   // group number (for grouping gene target sets in charts)
+  for (let idx=0; idx<geneNames.length; idx++) {
 		let wasTargetNameFound = false;
 		for (let i=0; i<wellConfig.length; i++) {
-      if (wellConfig[i] == targetNames[idx]) {
+      if (wellConfig[i] == geneNames[idx]) {
       	// Set up plot data & shared plot attributes:
 				data_dict = {	
-					name: targetNames[idx],
+					name: geneNames[idx],
 					type: "line",
 					group: g,
 					dataPoints: wellArray[i],
-		      color: targetColors[idx],
+		      color: geneColors[idx],
 					lineDashType: "solid"
 				};
 				// Only show each gene target in the legend once:
@@ -1281,13 +1328,13 @@ async function displayFilteredData(data) {
 // Display TTP for all wells individually:
 function displayTTP() {
   ttpBars = [];
-  for (let idx=0; idx<targetNames.length; idx++) {
+  for (let idx=0; idx<geneNames.length; idx++) {
 		for (let i=0; i<wellConfig.length; i++) {
-			if (wellConfig[i] == targetNames[idx]) {
+			if (wellConfig[i] == geneNames[idx]) {
 				ttpBars.push({
 					y: ttpValues[i],
-					label: targetNames[idx],
-					color: targetColors[idx]
+					label: geneNames[idx],
+					color: geneColors[idx]
 				});
 			}
 		}
@@ -1341,32 +1388,34 @@ function stdDevArray(arr) {
 }
 
 
-// Display mean & std dev TTP for each target group:
+// Display mean & std dev TTP for each gene target group:
 function displayTTPGrouped() {
-	// Calculate mean and standard deviation for each target:
+	// Calculate mean and standard deviation for each gene target:
   let dataPoints = [];
   let errorBars = [];
-  for (let idx=0; idx<targetNames.length; idx++) {
+  for (let idx=0; idx<geneNames.length; idx++) {
   	let vals = [];
   	let sum = 0;
 		for (let i=0; i<wellConfig.length; i++) {
-			if (wellConfig[i] == targetNames[idx]) {
+			if (wellConfig[i] == geneNames[idx]) {
 				vals.push(ttpValues[i]);
 			}
 		}
-		mean = avgArray(vals);
-		stdev = stdDevArray(vals);
+		meanTTP[geneNames[idx]] = avgArray(vals);       // meanTTP is global
+		rsdTTP[geneNames[idx]] = stdDevArray(vals);   // rsdTTP is global
+    let mean = meanTTP[geneNames[idx]];
+    let stdev = rsdTTP[geneNames[idx]];
 		dataPoints.push({ 
 			y: mean,
-			label: targetNames[idx],
+			label: geneNames[idx],
 			mean: mean.toFixed(2),             // custom tooltip entry
-			color: targetColors[idx]
+			color: geneColors[idx]
 		});
 		errorBars.push({
 			y: [mean-stdev, mean+stdev],
 			stdev: stdev.toFixed(2),           // custom tooltip entry
 			rsd: (100*stdev/mean).toFixed(2),  // custom tooltip entry
-			label: targetNames[idx]
+			label: geneNames[idx]
 		});
   }
   // Set up chart:

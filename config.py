@@ -18,8 +18,8 @@ data_directory = '/path/to/ramdisk'
 card_filename = ""
 logfile = magi_directory + "/magi_server.log"
 
-target_names = []       # list of all unique target names
-target_colors = []      # list of colors for each unique target
+gene_names = []       # list of all unique gene target names
+gene_colors = []      # list of colors for each unique target
 
 # GPIO pins:
 PWM_PIN = 19			# Heater PWM
