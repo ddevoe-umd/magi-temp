@@ -130,7 +130,7 @@ def timeout_handler(signum, frame):
     raise TimeoutException("Function execution exceeded the timeout limit.")
 
 # decorator to apply signal handler:
-def with_timeout(func, timeout_sec=10):
+def add_timeout(func, timeout_sec=10):
     def wrapper(*args, **kwargs):
         # Set the signal handler for the timeout
         signal.signal(signal.SIGALRM, timeout_handler)
@@ -149,16 +149,16 @@ def with_timeout(func, timeout_sec=10):
             cam.close()
             cam = Picamera2() 
             setup_camera()
-            print('capturing new image', flush=True)
-            img = capture_single_image()
-            print('returning image', flush=True)
-            return(img)           # capture PIL image
+            # print('capturing new image', flush=True)
+            # img = capture_single_image()
+            print('returning None', flush=True)
+            return(None)
     return wrapper
 
 # Capture a single image with timeout handling: 
-@with_timeout
+@add_timeout
 def capture_single_image():
-    return(cam.capture_image("main"))       # capture as PIL image
+    return(cam.capture_image("main"))       # capture PIL image
 
 # Extract fluorescence measurements from ROIs in image:
 @log_function_call
@@ -166,7 +166,12 @@ def get_image_data():
     try:
         cam.start()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.HIGH)    # Turn on LED
-        image = capture_single_image()                   # capture PIL image
+        image = None
+        while image is None:
+            # If image capture fails, capture_single_image() with add_timeout()
+            # decoration restarts the camera and returns None, forcing
+            # another image to be captured:
+            image = capture_single_image()               # capture PIL image
         cam.stop()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.LOW)     # Turn off LED
         # Get average pixel value for each ROI:
