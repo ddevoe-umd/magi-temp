@@ -81,6 +81,7 @@ def annotate_image(img, add_roi=False):      # Add timestamp and ROIs to image
 
 @log_function_call
 def adjust_settings(exposure_time_ms, analogue_gain, color_gains):
+    global cam
     try:
         cam.set_controls({
             "AeEnable": False,                 # auto update of gain & exposure settings
@@ -97,6 +98,7 @@ def adjust_settings(exposure_time_ms, analogue_gain, color_gains):
 
 @log_function_call
 def setup_camera(exposure_time_ms=50, analogue_gain=0.5, color_gains=(1.2,1.0)):    # Set up camera
+    global cam
     cam_config = cam.create_still_configuration(main={"size": res})
     cam.configure(cam_config)
     adjust_settings(exposure_time_ms, analogue_gain, color_gains)
@@ -132,27 +134,21 @@ def timeout_handler(signum, frame):
 # decorator to apply signal handler:
 def add_timeout(func, timeout_sec=10):
     def wrapper(*args, **kwargs):
+        global cam
         # Set the signal handler for the timeout
         signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(timeout_sec)  # Set the timeout
         try:
             result = func(*args, **kwargs)
-            signal.alarm(0)  # Cancel the alarm if the function finishes in time
             return result
         except TimeoutException:
-            # Restart the camera, and try to recapture the image recursively:
-            print('timeout exception', flush=True)
-            signal.alarm(0)  # Cancel the alarm (assume camera reset will work!)
-            print('alarm canceled', flush=True)
-            sys.stdout.flush()
-            global cam
+            print('timeout exception, restarting the camera', flush=True)
             cam.close()
             cam = Picamera2() 
             setup_camera()
-            # print('capturing new image', flush=True)
-            # img = capture_single_image()
-            print('returning None', flush=True)
             return(None)
+        finally:
+            signal.alarm(0)  # Cancel the alarm            
     return wrapper
 
 # Capture a single image with timeout handling: 
@@ -166,9 +162,10 @@ def get_image_data():
     try:
         cam.start()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.HIGH)    # Turn on LED
-        image = None
+        image = None   # start with null to enter following loop
         while image is None:
-            # If image capture fails, capture_single_image() with add_timeout()
+            print(sys.getsizeof(image))
+            # If image capture fails, capture_single_image() + add_timeout()
             # decoration restarts the camera and returns None, forcing
             # another image to be captured:
             image = capture_single_image()               # capture PIL image
