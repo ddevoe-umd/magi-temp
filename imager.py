@@ -139,11 +139,11 @@ def with_timeout(func, timeout_sec=10):
             sys.stdout.flush()
             cam = Picamera2() 
             setup_camera()
-            return_image()
+            return(capture_single_image())                  # capture PIL image
     return wrapper
 
 @with_timeout
-def return_image():
+def capture_single_image():
     return(cam.capture_image("main"))       # capture as PIL image
 
 @log_function_call
@@ -151,7 +151,7 @@ def get_image_data():    # Extract fluorescence measurements from ROIs in image
     try:
         cam.start()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.HIGH)    # Turn on LED
-        image = return_image()                # capture as PIL image
+        image = capture_single_image()                   # capture PIL image
         cam.stop()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.LOW)     # Turn off LED
         # Get average pixel value for each ROI:
@@ -175,7 +175,7 @@ def get_image(add_ROIs):
     try:
         cam.start()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.HIGH)
-        image = cam.capture_image("main")   # capture as PIL image
+        image = capture_single_image()     # capture PIL image
         cam.stop()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.LOW)
         image = annotate_image(image, add_ROIs)
