@@ -117,17 +117,14 @@ def roi_avg(image, roi):   # Return average pixel values in ROI
     b = int(100*b/pixels);
     return((r,g,b))
 
-
+# TimeoutException class, signal handler function, and decorator
+# to capture timeouts during image capture due to hardware errors, 
+# e.g. "Zero sequence expected for first frame (got 1)":
 class TimeoutException(Exception):
     pass
-
-# Signal handler function to capture timeouts during image capture
-# due to hardware error: "Zero sequence expected for first frame (got 1)":
-def timeout_handler(signum, frame):
+def timeout_handler(signum, frame):       # signal handler function
     raise TimeoutException("Function execution exceeded the timeout limit.")
-
-# Decorator to apply timeout signal handler:
-def with_timeout(func, timeout_sec=10):
+def with_timeout(func, timeout_sec=10):   # decorator to apply signal handler
     def wrapper(*args, **kwargs):
         # Set the signal handler for the timeout
         signal.signal(signal.SIGALRM, timeout_handler)
@@ -137,20 +134,24 @@ def with_timeout(func, timeout_sec=10):
             signal.alarm(0)  # Cancel the alarm if the function finishes in time
             return result
         except TimeoutException:
+            # Restart the camera, and try to recapture the image recursively:
             print('timeout exception', flush=True)
             sys.stdout.flush()
+            global cam
             cam.close()
             cam = Picamera2() 
             setup_camera()
-            return(capture_single_image())                  # capture PIL image
+            return(capture_single_image())           # capture PIL image
     return wrapper
 
+# Capture a single image with timeout handling: 
 @with_timeout
 def capture_single_image():
     return(cam.capture_image("main"))       # capture as PIL image
 
+# Extract fluorescence measurements from ROIs in image:
 @log_function_call
-def get_image_data():    # Extract fluorescence measurements from ROIs in image
+def get_image_data():
     try:
         cam.start()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.HIGH)    # Turn on LED
