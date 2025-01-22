@@ -124,9 +124,13 @@ def roi_avg(image, roi):   # Return average pixel values in ROI
 # e.g. "Zero sequence expected for first frame (got 1)":
 class TimeoutException(Exception):
     pass
-def timeout_handler(signum, frame):       # signal handler function
+
+# signal handler function:
+def timeout_handler(signum, frame):       
     raise TimeoutException("Function execution exceeded the timeout limit.")
-def with_timeout(func, timeout_sec=30):   # decorator to apply signal handler
+
+# decorator to apply signal handler:
+def with_timeout(func, timeout_sec=10):
     def wrapper(*args, **kwargs):
         # Set the signal handler for the timeout
         signal.signal(signal.SIGALRM, timeout_handler)
@@ -138,12 +142,17 @@ def with_timeout(func, timeout_sec=30):   # decorator to apply signal handler
         except TimeoutException:
             # Restart the camera, and try to recapture the image recursively:
             print('timeout exception', flush=True)
+            signal.alarm(0)  # Cancel the alarm (assume camera reset will work!)
+            print('alarm canceled', flush=True)
             sys.stdout.flush()
             global cam
             cam.close()
             cam = Picamera2() 
             setup_camera()
-            return(capture_single_image())           # capture PIL image
+            print('capturing new image', flush=True)
+            img = capture_single_image()
+            print('returning image', flush=True)
+            return(img)           # capture PIL image
     return wrapper
 
 # Capture a single image with timeout handling: 
