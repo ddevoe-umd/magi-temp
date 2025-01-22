@@ -124,7 +124,7 @@ class TimeoutException(Exception):
     pass
 def timeout_handler(signum, frame):       # signal handler function
     raise TimeoutException("Function execution exceeded the timeout limit.")
-def with_timeout(func, timeout_sec=10):   # decorator to apply signal handler
+def with_timeout(func, timeout_sec=30):   # decorator to apply signal handler
     def wrapper(*args, **kwargs):
         # Set the signal handler for the timeout
         signal.signal(signal.SIGALRM, timeout_handler)
