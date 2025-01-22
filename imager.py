@@ -14,6 +14,7 @@ from io import BytesIO
 import config   # Cross-module global variables for all Python codes
 from config import log_function_call
 
+import signal
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(config.IMAGER_LED_PIN, GPIO.OUT) 
@@ -117,14 +118,15 @@ def roi_avg(image, roi):   # Return average pixel values in ROI
     return((r,g,b))
 
 
-import signal
-
 class TimeoutException(Exception):
     pass
 
+# Signal handler function to capture timeouts during image capture
+# due to hardware error: "Zero sequence expected for first frame (got 1)":
 def timeout_handler(signum, frame):
     raise TimeoutException("Function execution exceeded the timeout limit.")
 
+# Decorator to apply timeout signal handler:
 def with_timeout(func, timeout_sec=10):
     def wrapper(*args, **kwargs):
         # Set the signal handler for the timeout
@@ -137,6 +139,7 @@ def with_timeout(func, timeout_sec=10):
         except TimeoutException:
             print('timeout exception', flush=True)
             sys.stdout.flush()
+            cam.close()
             cam = Picamera2() 
             setup_camera()
             return(capture_single_image())                  # capture PIL image
