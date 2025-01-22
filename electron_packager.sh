@@ -64,4 +64,4 @@ npm install electron-packager --save-dev
 npx electron-packager . MAGI --platform=darwin --arch=arm64 --overwrite
 
 # Windows:
-# npx electron-packager . MAGI --platform=win32 --arch=x64 --overwrite
+npx electron-packager . MAGI --platform=win32 --arch=x64 --overwrite

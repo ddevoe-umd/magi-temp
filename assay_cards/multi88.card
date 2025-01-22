@@ -17,15 +17,20 @@
   "roi_spacing_y": 32,
   "positives": 
   { "MRSA":
-    [
-      "MecA",
-      "Nuc",
-      "FemB"
-    ],
+    {
+      "mecA": true,
+      "nuc": true,
+      "femB": true,
+      "POS": true,
+      "NEG": false
+    },
     "MSSA":
-    [
-      "Nuc",
-      "FemB"
-    ]
+    {
+      "mecA": false,
+      "nuc": true,
+      "femB": true,
+      "POS": true,
+      "NEG": false
+    }
   }
 }

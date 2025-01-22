@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 import config   # Cross-module global variables for all Python codes
+from config import log_function_call
 
+@log_function_call
 def get_ttp(t,y):
     # Calculate slope at midpoint and project back to baseline to find TTP
     npoints = 2    # number of points before and after midpoint for linear fit
@@ -23,6 +25,7 @@ def get_ttp(t,y):
             ttp = -b/m     # define ttp as the x-axis intercept
     return ttp
 
+@log_function_call
 def filter(filename, filter_factor=10.0, cut_time=0.0, threshold=0):
     y_filtered = []
     ttp = []

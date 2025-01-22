@@ -6,3 +6,8 @@ v1.0.2:
 
 v.1.0.3:
 * changed data transfer from magi.js to magi_server.py to use dictionaries instead of lists
+
+v1.0.4:
+* renamed variables from target... to gene...
+* added preliminary positive hit check
+* added decorator for function call logging

@@ -1,7 +1,9 @@
-
 import os
+import sys
 
-# Cross-module Python global variables:
+# -------------------------------------
+# Cross-module Python global variables
+# -------------------------------------
 
 well_config = []
 roi_upper_left = (0,0)   # cordinates for upper left corner of upper left ROI
@@ -26,3 +28,16 @@ PWM_PIN = 19			# Heater PWM
 FAN = 26				# Case fan power
 STATUS_LED_PIN = 4		# System status LED
 IMAGER_LED_PIN = 13		# Fluorescence LED
+
+
+# -------------------------------------
+# Global Decorators
+# -------------------------------------
+
+# Decorator to log the name of the function being called:
+def log_function_call(func):
+    def wrapper(*args, **kwargs):
+        print(f"Calling function: {func.__name__}", flush=True)
+        sys.stdout.flush()
+        return func(*args, **kwargs)
+    return wrapper

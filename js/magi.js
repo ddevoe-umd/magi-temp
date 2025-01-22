@@ -786,47 +786,32 @@ img.addEventListener('click', () => {
 });
 
 
-// Evaluate & report positive hits:
+// Evaluate & report positive hits based on card file criteria:
 function reportPositives() {
   log("reportPositives() called");
   let targets = Object.keys(positives);
   let hits = []   // empty array to hold positive hits based on TTP values
-  targets.foreach((target) => {
+  targets.forEach((target) => {
     // pull out list of genes corresponding to a positive hit for the given target organism:
-    let positiveGenes_ = positives[target];
-    let positiveGenes = Object.keys(positiveGenes_);
-    positiveGenes.foreach((gene) => {
-      // evaluate TTP mean & std dev
-      if(meanTTP[gene] > 5 && meanTTP[gene] < 50 && rsdTTP[gene] < 0.3) {
-        hits.append(target);
+    let geneList = Object.keys(positives[target]);
+    let positive = true;    // assume positive hit at start
+    geneList.forEach((gene) => {
+      // evaluate if gene amplified:
+      // let didAmplify = meanTTP[gene] > 0.1 && meanTTP[gene] < 50 && rsdTTP[gene] < 1.5;
+      let didAmplify = meanTTP[gene] > 0.1 && meanTTP[gene] < 50;
+      let amplifyIfPositive = positives[target][gene];
+      if(didAmplify != amplifyIfPositive) {   // XOR operation...
+        positive = false;
       }
     });
+    if (positive) {
+      // the target survived each gene check so add to positive hits
+      hits.push(target);
+    }
   });
   log(hits.toString());
+  alert(`Positive hits: ${hits.toString()}`);
 }
-
-/*
-
-  { "MRSA":
-    {
-      "mecA": true,
-      "nuc": true,
-      "femB": true
-      "POS": true
-      "NEG": false
-    },
-    "MSSA":
-    {
-      "mecA": false,
-      "nuc": true,
-      "femB": true
-      "POS": true
-      "NEG": false
-    }
-  }
-}
-
-*/
 
 
 // Filter the raw data and get TTP values:
@@ -882,14 +867,6 @@ async function analyzeData() {
 		}
 	}
   notificationWindow.remove();    // Remove the notification window
-  displayPosNegResults();         // evaluate TTPs against positive criteria from assay card
-}
-
-
-
-// evaluate TTPs against positive criteria from assay card:
-function displayPosNegResults() {
-   // pass
 }
 
 
@@ -1148,7 +1125,9 @@ function setupTemperatureChart(targetContainer) {
 		axisY:{
 			includeZero: true,
 			title: "Temperature (\u00B0C)",
-			titleFontSize: 13
+			titleFontSize: 13,
+      minmimum: 0,
+      maximum: 100 
 		}, 
 		toolTip: {
 			shared: false,

@@ -12,6 +12,8 @@ import base64
 from io import BytesIO
 
 import config   # Cross-module global variables for all Python codes
+from config import log_function_call
+
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(config.IMAGER_LED_PIN, GPIO.OUT) 
@@ -24,8 +26,8 @@ res = (w,h)
 cam = Picamera2() 
 
 # Create a flat list of ROI dicts from well_config 2D array:
+@log_function_call
 def setup_ROIs():
-    print('setup_ROIs() called', flush=True)
     config.ROIs = []
     rows = len(config.well_config)
     for r in range(rows):
@@ -43,10 +45,8 @@ def setup_ROIs():
 def hex_to_rgb(h):   # convert "#rrggbb" to [R,G,B]
     return [int(h[i:i+2], 16) for i in (1, 3, 5)]
 
-
+@log_function_call
 def annotate_image(img, add_roi=False):      # Add timestamp and ROIs to image
-    print('annotate_image() called', flush=True)
-    sys.stdout.flush()
     try:
         img = img.convert('RGBA')   # convert captured image to support an alpha channel
         img_tmp = Image.new('RGBA', img.size, (255, 255, 255, 0))  # create new image with ROIs only
@@ -78,13 +78,9 @@ def annotate_image(img, add_roi=False):      # Add timestamp and ROIs to image
         print('Exception in annotate_image():', flush=True)
         print(f'{type(e)}: {e}', flush=True)
 
-
+@log_function_call
 def adjust_settings(exposure_time_ms, analogue_gain, color_gains):
     try:
-        print("adjust_settings() called with", flush=True)
-        print(f"exposure_time={int(exposure_time_ms*1e3)} us", flush=True)
-        print(f"analogue_gain={float(analogue_gain)}", flush=True)
-        print(f"color_gains={color_gains}", flush=True)
         cam.set_controls({
             "AeEnable": False,                 # auto update of gain & exposure settings
             "AwbEnable": False,                # auto white balance
@@ -96,7 +92,6 @@ def adjust_settings(exposure_time_ms, analogue_gain, color_gains):
         return('adjust_settings() done')
     except Exception as e:
         print(f'error in adjust_settings(): {e}', flush=True)
-        return('error in adjust_settings()')
 
 def setup_camera(exposure_time_ms=50, analogue_gain=0.5, color_gains=(1.2,1.0)):    # Set up camera
     cam_config = cam.create_still_configuration(main={"size": res})
@@ -121,9 +116,34 @@ def roi_avg(image, roi):   # Return average pixel values in ROI
     b = int(100*b/pixels);
     return((r,g,b))
 
+
+import signal
+
+class TimeoutException(Exception):
+    pass
+
+def timeout_handler(signum, frame):
+    raise TimeoutException("Function execution exceeded the timeout limit.")
+
+def with_timeout(func, timeout_sec=10):
+    def wrapper(*args, **kwargs):
+        # Set the signal handler for the timeout
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(timeout_sec)  # Set the timeout
+        try:
+            result = func(*args, **kwargs)
+            signal.alarm(0)  # Cancel the alarm if the function finishes in time
+            return result
+        except TimeoutException:
+            print('timeout exception', flush=True)
+            sys.stdout.flush()
+            setup_camera()
+    return wrapper
+
+
+@log_function_call
+@with_timeout
 def get_image_data():    # Extract fluorescence measurements from ROIs in image
-    print('get_image_data() called', flush=True)
-    sys.stdout.flush()
     try:
         cam.start()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.HIGH)    # Turn on LED
@@ -146,6 +166,7 @@ def get_image_data():    # Extract fluorescence measurements from ROIs in image
         return(f'Exception in get_image_data(): {e}')
 
 # Return a PIL image with time stamp (add colored ROI boxes if add_ROIs true):
+@log_function_call
 def get_image(add_ROIs):
     try:
         cam.start()
@@ -166,6 +187,7 @@ def get_image(add_ROIs):
         print(f'Exception in get_image(): {e}', flush=True)
         return(f'Exception in get_image(): {e}')
 
+@log_function_call
 def end_imaging():
     # move temp data contents to time-stamped file:
     output_filename = time.strftime("%Y%m%d_%Hh%Mm%Ss")
@@ -174,6 +196,7 @@ def end_imaging():
     sys.stdout.flush()
     return(output_filename)
 
+@log_function_call
 def analyze_data(filename, filter_factor, cut_time, threshold):
     # filter() returns: {'ttp': ttp, 'y_filt': y_filtered}
     # where ttp is a list of TTP values for each well, and
