@@ -137,17 +137,21 @@ def with_timeout(func, timeout_sec=10):
         except TimeoutException:
             print('timeout exception', flush=True)
             sys.stdout.flush()
+            cam = Picamera2() 
             setup_camera()
+            return_image()
     return wrapper
 
+@with_timeout
+def return_image():
+    return(cam.capture_image("main"))       # capture as PIL image
 
 @log_function_call
-@with_timeout
 def get_image_data():    # Extract fluorescence measurements from ROIs in image
     try:
         cam.start()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.HIGH)    # Turn on LED
-        image = cam.capture_image("main")                # capture as PIL image
+        image = return_image()                # capture as PIL image
         cam.stop()
         GPIO.output(config.IMAGER_LED_PIN, GPIO.LOW)     # Turn off LED
         # Get average pixel value for each ROI:
