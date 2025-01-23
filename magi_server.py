@@ -101,7 +101,7 @@ class S(BaseHTTPRequestHandler):
             config.roi_height = int(card_data["roi_height"])
             config.roi_spacing_x = int(card_data["roi_spacing_x"])
             config.roi_spacing_y = int(card_data["roi_spacing_y"])
-            config.positives = card_data["positives"]
+            config.positives = card_data["hit_criteria"]
             config.gene_names = data['gene_names']
             config.gene_colors = data['gene_colors']
             imager.setup_ROIs()      # set up the ROIs from assay card data
